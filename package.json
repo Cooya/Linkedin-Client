@@ -4,12 +4,28 @@
   "description": "linkedin api for cleany",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack"
   },
   "author": "Coya",
   "license": "ISC",
+  "devDependencies": {
+    "babel-loader": "^7.1.4",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "css-loader": "^0.28.11",
+    "node-sass": "^4.9.0",
+    "react": "^16.3.2",
+    "react-dom": "^16.3.2",
+    "sass-loader": "^7.0.1",
+    "style-loader": "^0.21.0",
+    "webpack": "^4.6.0",
+    "webpack-cli": "^2.1.2"
+  },
   "dependencies": {
+    "bulma": "^0.7.1",
     "node-linkedin": "^0.5.6",
-    "puppeteer": "^1.3.0"
+    "puppeteer": "^1.3.0",
+    "whatwg-fetch": "^2.0.4"
   }
 }

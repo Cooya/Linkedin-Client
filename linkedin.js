@@ -18,45 +18,49 @@ const browserOptions = {
     const config = require('./assets/config.json');
 
     // load entries from csv file
-    const entries = (await csv.readFile(config.inputCsvFile));
-    entries.shift(); // remove the header
+    const entries = (await csv.readFile(config.csvFile));
 
     // process entries
     const browser = await puppeteer.launch(browserOptions);
-    await processEntries(browser, entries, config.cookiesFile, config.screenshotFile);
+    await processEntries(browser, entries, config.csvFile, config.cookiesFile, config.screenshotFile);
     await browser.close();
 
     // saving updated entries into csv file
-    await csv.writeFile(config.outputCsvFile, entries);
+    await csv.writeFile(config.csvFile, entries);
     console.log('Process done.');
 })();
 
-async function processEntries(browser, entries, cookiesFile, screenshotFile) {
+async function processEntries(browser, entries, csvFile, cookiesFile, screenshotFile) {
     let page = null;
     let counter = 0;
+    let companyLink;
     let companyDetails;
-    for(let entry of entries) {
+    entries.map(async (entry, index) => {
+        if(entry[5])
+            return; // skip the already processed entries
+
         if(!page)
             page = await createPage(browser, cookiesFile);
 
         console.log('Going to %s...', entry[3]);
-        await page.goto('https://www.linkedin.com/in/anniehipki/');
+        await page.goto(entry[3]);
         await page.waitFor(3000);
         await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
         await page.waitForSelector('#experience-section');
         if(screenshotFile) await page.screenshot({path: screenshotFile, fullPage: true});
-        let companyLink = await page.$('#experience-section > ul > li:nth-child(1) a.ember-view');
+        companyLink = await page.$('#experience-section > ul > li:nth-child(1) a.ember-view');
         if(!companyLink)
             throw Error('Cannot find the company link.');
         await companyLink.click();
         companyDetails = await scrapCompanyPage(page);
-        console.log(companyDetails);
-        process.exit();
+        entry[5] = companyDetails[''];
         if((++counter % 10) === 0) {
             await page.close();
             page = null;
+            console.log('Saving last 10 processed entries...');
+            await csv.writeFile(csvFile, entries);
         }
-    }
+    });
 }
 
 async function scrapCompanyPage(page, pageUrl = null) {
