@@ -14,11 +14,22 @@ const browserOptions = {
     headless: false
 };
 
+/*(async () => {
+    const config = require('./assets/config.json');
+
+    const browser = await puppeteer.launch(browserOptions);
+    const page = await createPage(browser, config.cookiesFile);
+    await page.waitFor(60000);
+    await saveCookies(page, config.cookiesFile);
+    await browser.close();
+})();*/
+
 (async () => {
     const config = require('./assets/config.json');
 
     // load entries from csv file
     const entries = (await csv.readFile(config.csvFile));
+    console.log(entries.length + ' entries to process.');
 
     // process entries
     const browser = await puppeteer.launch(browserOptions);
@@ -32,35 +43,79 @@ const browserOptions = {
 
 async function processEntries(browser, entries, csvFile, cookiesFile, screenshotFile) {
     let page = null;
-    let counter = 0;
     let companyLink;
     let companyDetails;
-    entries.map(async (entry, index) => {
-        if(entry[5])
-            return; // skip the already processed entries
+    let entry;
+    for(let i in entries) {
+        entry = entries[i];
+        console.log('Processing entry', i, '...');
+
+        if(entry[5] || entry[6]) {
+            console.log('Skipping already processed entry.');
+            continue; // skip the already processed entries
+        }
 
         if(!page)
             page = await createPage(browser, cookiesFile);
 
         console.log('Going to %s...', entry[3]);
-        await page.goto(entry[3]);
-        await page.waitFor(3000);
-        await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
-        await page.waitForSelector('#experience-section');
-        if(screenshotFile) await page.screenshot({path: screenshotFile, fullPage: true});
-        companyLink = await page.$('#experience-section > ul > li:nth-child(1) a.ember-view');
-        if(!companyLink)
-            throw Error('Cannot find the company link.');
-        await companyLink.click();
-        companyDetails = await scrapCompanyPage(page);
-        entry[5] = companyDetails[''];
-        if((++counter % 10) === 0) {
-            await page.close();
-            page = null;
-            console.log('Saving last 10 processed entries...');
-            await csv.writeFile(csvFile, entries);
+        while(true) {
+            try {
+                await page.goto(entry[3]);
+                break;
+            }
+            catch(e) {
+                console.log(e);
+            }
         }
-    });
+
+        console.log('Scrolling the page...');
+        //await page.waitFor('span.org > a');
+        let scrollAgain = true;
+        let counter = 0;
+        let jsInstruction;
+        while(scrollAgain) {
+            jsInstruction = ++counter % 2 ? 'window.scrollTo(0, document.body.scrollHeight / 2)' : 'window.scrollTo(0, 0)';
+            await page.evaluate(jsInstruction);
+            try {
+                await page.waitForSelector('#experience-section', {timeout: 2000});
+                scrollAgain = false;
+            }
+            catch(e) {
+                console.log('exception !')
+            }
+        }
+        // wait a bit to prevent robot detection
+        console.log('Waiting for 30000ms.');
+        await page.waitFor(30000);// 2 sec minimum required otherwise it does not work very well
+
+        // get the link of the company
+        companyLink = await page.$('#experience-section > ul > li:nth-child(1) a.ember-view');
+        //companyLink = await page.$('span.org > a');
+        if (!companyLink)
+            throw Error('Cannot find the company link.');
+
+        // going to the company page
+        const navigationPromise = page.waitForNavigation();
+        //await companyLink.click();
+        await page.evaluate((el) => {
+            el.click();
+        }, companyLink);
+        await navigationPromise;
+
+        // getting details about the company
+        if(page.url().indexOf('https://www.linkedin.com/search/results/index/') !== -1)
+            entries[i][5] = 'No company URL available';
+        else {
+            companyDetails = await scrapCompanyPage(page);
+            entries[i][5] = companyDetails['headquarters'] || 'Unknown';
+            entries[i][6] = companyDetails['companySize'] || 'Unknown';
+        }
+
+        // saving the retrieved details in the csv file
+        console.log('Saving last processed entry...');
+        await csv.writeFile(csvFile, entries);
+    }
 }
 
 async function scrapCompanyPage(page, pageUrl = null) {

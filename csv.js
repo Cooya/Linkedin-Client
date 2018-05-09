@@ -15,10 +15,10 @@ async function readCSVFile(csvFile, separator = ',') {
 }
 
 async function writeIntoCSVFile(csvFile, array, separator = ',') {
-    array.map((entry, index) => {
-        array[index] = entry.join(separator);
+    const copy = array.map((entry) => {
+        return typeof entry === 'string' ? entry : entry.join(separator);
     });
-    await writeFile(csvFile, array.join('\n'));
+    await writeFile(csvFile, copy.join('\n'));
 }
 
 module.exports = {
