@@ -5,6 +5,7 @@ const util = require('util');
 const csv = require('csv');
 const puppeteer = require('puppeteer');
 const request = require('request');
+const sleep = require('sleep');
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
@@ -22,8 +23,8 @@ const browserOptions = {
 
 (async () => {
     //await manualLogIn();
-    await getCompaniesData();
-    //await getEmails();
+    //await getCompaniesData();
+    await getEmails();
 })();
 
 async function manualLogIn() {
@@ -56,24 +57,41 @@ async function getEmails() {
     const config = require('./assets/config.json');
 
     // load entries from csv file
-    const entries = (await parseCSV(config.csvFile, {'relax_column_count': true}));
+    const entries = (await parseCSV(await readFile(config.csvFile), {'relax_column_count': true}));
     console.log(entries.length + ' entries to process.');
 
     let endpoint;
     let requestOptions;
     let response;
     let hostname;
-    let i = 0;
-    for(let entry of entries) {
-        if(entry.length != 9 || entry[8] == '') {
+    let firstName;
+    let lastName;
+    let entry;
+    for(let i in entries) {
+        if(i == 0)
+            continue;
+        console.log('Processing entry ' + i + '...');
+        entry = entries[i];
+
+        if(entry.length != 12) { // not processed yet
+            if(entry[9] == 'N/A') { // cannot get the email address
+                entries[i] = entry.concat(['N/A', 'N/A']);
+                console.log('Saving last processed entry...');
+                await writeFile(config.csvFile, await stringifyCSV(entries));
+                continue;
+            }
+        }
+        else {
             console.log('Skipping...');
             continue;
         }
-        hostname = url.parse(entry[8]).hostname.replace('www.', '');
-        entry[0] = entry[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        entry[1] = entry[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        endpoint = 'https://api.skrapp.io/api/v2/find?firstName=' + entry[0] + '&lastName=' + entry[1] + '&domain=' + hostname;
+
+        hostname = url.parse(entry[9]).hostname.replace('www.', '');
+        firstName = entry[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '');
+        lastName = entry[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '');
+        endpoint = 'https://api.skrapp.io/api/v2/find?firstName=' + firstName + '&lastName=' + lastName + '&domain=' + hostname;
         console.log(endpoint);
+
         requestOptions = {
             url: endpoint,
             headers: {
@@ -89,15 +107,16 @@ async function getEmails() {
             if(response.body['email'])
                 entries[i] = entry.concat(response.body['email'], response.body['accuracy']);
             else
-                entries[i] = entry.concat(['Email not found', '']);
+                entries[i] = entry.concat(['N/A', 'N/A']);
             console.log('Saving last processed entry...');
-            await stringifyCSV(config.csvFile, entries);
-            i++;
+            await writeFile(config.csvFile, await stringifyCSV(entries));
         }
         catch(e) {
-            console.log(e);
+            console.error(e);
             process.exit(1);
         }
+
+        sleep.sleep(1);
     }
 
     console.log('Process done.');
@@ -252,12 +271,23 @@ async function click(page, element, timeout) {
             again = false;
         }
         catch(e) {
-            if(e.message.indexOf('Navigation Timeout Exceeded') != -1)
-                console.log('click() timeout !');
+            if(e.message.indexOf('Navigation Timeout Exceeded') != -1) {
+                console.error('click() timeout !');
+                await reloadPage(page);
+            }
             else
                 throw e;
         }
     }
+}
+
+async function reloadPage(page, timeout) {
+    console.log('Reloading page...');
+
+    const options = timeout ? {timeout: timeout} : {};
+    const navigationPromise = page.waitForNavigation(options);
+    await page.evaluate('location.reload()');
+    await navigationPromise;
 }
 
 async function logIn(page, login, password) {
