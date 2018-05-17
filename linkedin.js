@@ -1,13 +1,16 @@
 const fs = require('fs');
 const url = require('url');
 const util = require('util');
-const readFile = util.promisify(fs.readFile);
-const writeFile = util.promisify(fs.writeFile);
 
-const csv = require('./csv.js');
+const csv = require('csv');
 const puppeteer = require('puppeteer');
 const request = require('request');
+
+const readFile = util.promisify(fs.readFile);
+const writeFile = util.promisify(fs.writeFile);
 const get = util.promisify(request.get);
+const parseCSV = util.promisify(csv.parse);
+const stringifyCSV = util.promisify(csv.stringify);
 
 const browserOptions = {
     args: [
@@ -17,7 +20,13 @@ const browserOptions = {
     headless: false
 };
 
-/*(async () => {
+(async () => {
+    //await manualLogIn();
+    await getCompaniesData();
+    //await getEmails();
+})();
+
+async function manualLogIn() {
     const config = require('./assets/config.json');
 
     const browser = await puppeteer.launch(browserOptions);
@@ -25,13 +34,29 @@ const browserOptions = {
     await page.waitFor(60000);
     await saveCookies(page, config.cookiesFile);
     await browser.close();
-})();*/
+}
 
-(async () => {
+async function getCompaniesData() {
     const config = require('./assets/config.json');
 
     // load entries from csv file
-    const entries = (await csv.readFile(config.csvFile));
+    const entries = (await parseCSV(await readFile(config.csvFile), {'relax_column_count': true}));
+    console.log(entries.length + ' entries to process.');
+
+    // process entries
+    const browser = await puppeteer.launch(browserOptions);
+    const page = await createPage(browser, config.cookiesFile);
+    await processEntries(page, entries, config.csvFile, config.scrapingInterval);
+    await browser.close();
+
+    console.log('Process done.');
+}
+
+async function getEmails() {
+    const config = require('./assets/config.json');
+
+    // load entries from csv file
+    const entries = (await parseCSV(config.csvFile, {'relax_column_count': true}));
     console.log(entries.length + ' entries to process.');
 
     let endpoint;
@@ -66,7 +91,7 @@ const browserOptions = {
             else
                 entries[i] = entry.concat(['Email not found', '']);
             console.log('Saving last processed entry...');
-            await csv.writeFile(config.csvFile, entries);
+            await stringifyCSV(config.csvFile, entries);
             i++;
         }
         catch(e) {
@@ -76,58 +101,41 @@ const browserOptions = {
     }
 
     console.log('Process done.');
-})();
+}
 
-/*(async () => {
-    const config = require('./assets/config.json');
-
-    // load entries from csv file
-    const entries = (await csv.readFile(config.csvFile));
-    console.log(entries.length + ' entries to process.');
-
-    // process entries
-    const browser = await puppeteer.launch(browserOptions);
-    const page = await createPage(browser, config.cookiesFile);
-    await processEntries(page, entries, config.csvFile);
-    await browser.close();
-
-    console.log('Process done.');
-})();*/
-
-async function processEntries(page, entries, csvFile) {
+async function processEntries(page, entries, csvFile, interval) {
     let companyLink;
     let companyDetails;
     let entry;
+    let currentPageUrl;
     for(let i in entries) {
         entry = entries[i];
-        console.log('Processing entry', i, '...');
+        console.log('Processing entry ' + i + '...');
 
-        if(i == 0 || entry[6] == 'Unknown' || entry.length == 9) {
+        if(i == 0 || entry.length > 5) {
             console.log('Skipping...');
             continue; // skip the already processed entries
         }
 
         await goTo(page, entry[3], 30000);
-
-        console.log('Scrolling the page...');
-        //await page.waitFor('span.org > a');
-        let scrollAgain = true;
-        let counter = 0;
-        let jsInstruction;
-        while(scrollAgain) {
-            jsInstruction = ++counter % 2 ? 'window.scrollTo(0, document.body.scrollHeight / 2)' : 'window.scrollTo(0, 0)';
-            await page.evaluate(jsInstruction);
-            try {
-                await page.waitForSelector('#experience-section', {timeout: 2000});
-                scrollAgain = false;
-            }
-            catch(e) {
-                console.log('exception !')
-            }
+        await page.waitFor(2000);
+        currentPageUrl = page.url();
+        if(currentPageUrl.indexOf('https://www.linkedin.com/in/unavailable/') != -1) {
+            entries[i] = entry.concat([
+                'N/A',
+                'N/A',
+                'N/A',
+                'N/A',
+                'N/A'
+            ]);
+            continue;
         }
+
+        await scrollPage(page, '#experience-section', 0.5);
+
         // wait a bit to prevent robot detection
-        console.log('Waiting for 15000ms.');
-        await page.waitFor(15000);// 2 sec minimum required otherwise it does not work very well
+        console.log(util.format('Waiting for %d ms.', interval / 2));
+        await page.waitFor(interval / 2);// 2 sec minimum required otherwise it does not work very well
 
         // get the link of the company
         companyLink = await page.$('#experience-section > ul > li:nth-child(1) a.ember-view');
@@ -138,19 +146,33 @@ async function processEntries(page, entries, csvFile) {
         await click(page, companyLink);
 
         // getting details about the company
-        const companyPageUrl = page.url();
-        if(companyPageUrl.indexOf('https://www.linkedin.com/search/results/index/') != -1)
-            throw Error('Impossible error !');
+        currentPageUrl = page.url();
+        if(currentPageUrl.indexOf('https://www.linkedin.com/search/results/index/') != -1)
+            entries[i] = entry.concat([
+                'N/A',
+                'N/A',
+                'N/A',
+                'N/A',
+                'N/A'
+            ]);
         else {
             companyDetails = await scrapCompanyPage(page);
-            //entries[i][5] = companyDetails['headquarters'] || 'Unknown';
-            //entries[i][6] = companyDetails['companySize'] || 'Unknown';
-            entries[i] = entry.concat([companyPageUrl, companyDetails['website']]);
+            entries[i] = entry.concat([
+                currentPageUrl,
+                companyDetails['headquarters'] || 'N/A',
+                companyDetails['companySize'] || 'N/A',
+                companyDetails['membersOnLinkedin'] || 'N/A',
+                companyDetails['website'] || 'N/A'
+            ]);
         }
 
         // saving the retrieved details in the csv file
         console.log('Saving last processed entry...');
-        await csv.writeFile(csvFile, entries);
+        await writeFile(csvFile, await stringifyCSV(entries));
+
+        // wait a bit to prevent robot detection
+        console.log(util.format('Waiting for %d ms.', interval / 2));
+        await page.waitFor(interval / 2);
     }
 }
 
@@ -169,6 +191,7 @@ async function scrapCompanyPage(page, pageUrl = null) {
         companyDetails['foundedYear'] = $('p.org-about-company-module__founded').text().trim();
         companyDetails['companyType'] = $('p.org-about-company-module__company-type').text().trim();
         companyDetails['companySize'] = $('p.org-about-company-module__company-staff-count-range').text().trim();
+        companyDetails['membersOnLinkedin'] = $('a.snackbar-description-see-all-link').text().replace('See all', '').replace('employees on LinkedIn', '').replace(',', '').trim();
         return companyDetails;
     });
 }
@@ -195,6 +218,21 @@ async function goTo(page, url, timeout) {
                 console.log('goTo() timeout !');
             else
                 throw e;
+        }
+    }
+}
+
+async function scrollPage(page, selector, targetPosition = 1) {
+    console.log('Scrolling the page...');
+    while(true) {
+        await page.evaluate('window.scrollTo(0, document.body.scrollHeight * ' + targetPosition + ')');
+        try {
+            await page.waitForSelector('#experience-section', {timeout: 1000});
+            return;
+        }
+        catch(e) {
+            targetPosition = targetPosition >= 1 ? 0 : targetPosition + 0.1;
+            console.log('Scrolling again to ' + targetPosition + '...');
         }
     }
 }
