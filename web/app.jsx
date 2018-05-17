@@ -29,7 +29,7 @@ class LinkedinForm extends React.Component {
             loading: true
         });
 
-        fetch('/?url=' + this.state.linkedinUrl, {
+        fetch('localhost:8080/request?linkedinUrl=' + this.state.linkedinUrl, {
             method: 'GET',
             credentials: 'same-origin'
         }).then((response) => {

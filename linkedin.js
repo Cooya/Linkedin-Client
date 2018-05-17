@@ -28,15 +28,8 @@ module.exports = {
     getCompanyOrPeopleDetails: getCompanyOrPeopleDetails
 };
 
-(async () => {
-    console.log(await getCompanyOrPeopleDetails('tata'));
-    //await manualLogIn();
-    //await getCompaniesData();
-    //await getEmails();
-})();
-
 async function getCompanyOrPeopleDetails(linkedinUrl) {
-    console.log('Getting data from "' + linkedinUrl + '".');
+    console.log('Getting data from "' + linkedinUrl + '"...');
     if(linkedinUrl.indexOf('https://www.linkedin.com/company/') != -1) {
         const browser = await puppeteer.launch(browserOptions);
         const companyDetails = await scrapCompanyPage(await createPage(browser, config.cookiesFile), linkedinUrl);
