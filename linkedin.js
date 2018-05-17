@@ -2,7 +2,10 @@ const fs = require('fs');
 const url = require('url');
 const util = require('util');
 
+const config = require('./assets/config.json');
+
 const csv = require('csv');
+const linkedin = require('node-linkedin')(config.linkedinApiKey, config.linkedinApiSecret).init(config.linkedinApiToken);
 const puppeteer = require('puppeteer');
 const request = require('request');
 const sleep = require('sleep');
@@ -18,18 +21,33 @@ const browserOptions = {
         '--no-sandbox',
         '--disable-setuid-sandbox'
     ],
-    headless: false
+    headless: true
+};
+
+module.exports = {
+    getCompanyOrPeopleDetails: getCompanyOrPeopleDetails
 };
 
 (async () => {
+    console.log(await getCompanyOrPeopleDetails('tata'));
     //await manualLogIn();
     //await getCompaniesData();
-    await getEmails();
+    //await getEmails();
 })();
 
-async function manualLogIn() {
-    const config = require('./assets/config.json');
+async function getCompanyOrPeopleDetails(linkedinUrl) {
+    console.log('Getting data from "' + linkedinUrl + '".');
+    if(linkedinUrl.indexOf('https://www.linkedin.com/company/') != -1) {
+        const browser = await puppeteer.launch(browserOptions);
+        const companyDetails = await scrapCompanyPage(await createPage(browser, config.cookiesFile), linkedinUrl);
+        await browser.close();
+        return companyDetails;
+    }
+    else
+        return await getPeopleData(linkedinUrl);
+}
 
+async function manualLogIn() {
     const browser = await puppeteer.launch(browserOptions);
     const page = await createPage(browser, config.cookiesFile);
     await page.waitFor(60000);
@@ -38,8 +56,6 @@ async function manualLogIn() {
 }
 
 async function getCompaniesData() {
-    const config = require('./assets/config.json');
-
     // load entries from csv file
     const entries = (await parseCSV(await readFile(config.csvFile), {'relax_column_count': true}));
     console.log(entries.length + ' entries to process.');
@@ -54,67 +70,36 @@ async function getCompaniesData() {
 }
 
 async function getEmails() {
-    const config = require('./assets/config.json');
-
     // load entries from csv file
     const entries = (await parseCSV(await readFile(config.csvFile), {'relax_column_count': true}));
     console.log(entries.length + ' entries to process.');
 
-    let endpoint;
-    let requestOptions;
-    let response;
-    let hostname;
-    let firstName;
-    let lastName;
     let entry;
+    let emailResult;
     for(let i in entries) {
         if(i == 0)
             continue;
-        console.log('Processing entry ' + i + '...');
-        entry = entries[i];
 
-        if(entry.length != 12) { // not processed yet
-            if(entry[9] == 'N/A') { // cannot get the email address
-                entries[i] = entry.concat(['N/A', 'N/A']);
-                console.log('Saving last processed entry...');
-                await writeFile(config.csvFile, await stringifyCSV(entries));
-                continue;
-            }
-        }
-        else {
-            console.log('Skipping...');
+        entry = entries[i];
+        if(entry.length == 12) {
+            console.log('Skipping already processed entry ' + i + '...');
             continue;
         }
 
-        hostname = url.parse(entry[9]).hostname.replace('www.', '');
-        firstName = entry[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '');
-        lastName = entry[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '');
-        endpoint = 'https://api.skrapp.io/api/v2/find?firstName=' + firstName + '&lastName=' + lastName + '&domain=' + hostname;
-        console.log(endpoint);
-
-        requestOptions = {
-            url: endpoint,
-            headers: {
-                'X-Access-Key': config.skrappApiKey,
-                'Content-Type': 'application/json'
-            }
-        };
-
-        try {
-            response = await get(requestOptions);
-            console.log(response.body);
-            response.body = JSON.parse(response.body);
-            if(response.body['email'])
-                entries[i] = entry.concat(response.body['email'], response.body['accuracy']);
-            else
-                entries[i] = entry.concat(['N/A', 'N/A']);
-            console.log('Saving last processed entry...');
+        if(entry[9] == 'N/A') { // cannot get the email address
+            console.log('Cannot get email address for the entry ' + i + '.');
+            entries[i] = entry.concat(['N/A', 'N/A']);
+            console.log('Saving entries into file...');
             await writeFile(config.csvFile, await stringifyCSV(entries));
+            continue;
         }
-        catch(e) {
-            console.error(e);
-            process.exit(1);
-        }
+
+        console.log('Processing entry ' + i + '...');
+        emailResult = await retrieveEmail(entry[0], entry[1], entry[9]);
+        entries[i] = emailResult ? entry.concat(emailResult['email'], emailResult['accuracy']) : entry.concat(['N/A', 'N/A']);
+
+        console.log('Saving entries into file...');
+        await writeFile(config.csvFile, await stringifyCSV(entries));
 
         sleep.sleep(1);
     }
@@ -193,6 +178,41 @@ async function processEntries(page, entries, csvFile, interval) {
         console.log(util.format('Waiting for %d ms.', interval / 2));
         await page.waitFor(interval / 2);
     }
+}
+
+async function retrieveEmail(firstName, lastName, domainName) {
+    firstName = firstName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '');
+    lastName = lastName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ /g, '');
+    domainName = url.parse(domainName).hostname.replace('www.', '');
+
+    const requestOptions = {
+        url: 'https://api.skrapp.io/api/v2/find?firstName=' + firstName + '&lastName=' + lastName + '&domain=' + domainName,
+        headers: {
+            'X-Access-Key': config.skrappApiKey,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    try {
+        const response = await get(requestOptions);
+        response.body = JSON.parse(response.body);
+        if(response.body['email'])
+            return response.body;
+        else
+            return null;
+    }
+    catch(e) {
+        throw e;
+    }
+}
+
+async function getPeopleData(profileUrl) {
+    return new Promise((resolve, reject) => {
+        linkedin.people.url(profileUrl, ['headline', 'summary', 'positions', 'email-address'], (err, user) => {
+            if(err) reject(err);
+            else resolve(user);
+        });
+    });
 }
 
 async function scrapCompanyPage(page, pageUrl = null) {
