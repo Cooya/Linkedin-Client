@@ -82,9 +82,9 @@ class LinkedinForm extends React.Component {
             </section>
             <section>
                 <div className="column box is-half is-offset-one-quarter content" style={{'marginTop': '50px'}}>
-                    <p>Submit a company page or people profile URL and data will be scrapped and displayed. This a demonstration tool, you got 3 shots.</p>
+                    <p>Submit a company page or people profile URL and data will be scrapped and displayed. This a demonstration tool, you got 5 shots.</p>
                     <p>This tool is using either the Linkedin API for people profiles or a headless browser for company pages.
-                        If you are interested by retrieving data from Linkedin, to complete your leads file for instance, feel free to contact me.</p>
+                        If you are interested by retrieving data from Linkedin, to complete your leads file for instance, feel free to <a href="http://cooya.fr">contact me</a>.</p>
                     <form onSubmit={this.handleSubmit}>
                         <div className="field is-grouped">
                             <div className="control is-expanded">
@@ -129,7 +129,7 @@ class Message extends React.Component {
         if(!this.props.error)
             return null;
         return <div className="column box is-half is-offset-one-quarter content" style={{'marginTop': '20px', 'padding': '0'}}>
-            <div className="notification is-danger">{this.props.error}</div>;
+            <div className="notification is-danger">{this.props.error}</div>
         </div>;
     }
 }

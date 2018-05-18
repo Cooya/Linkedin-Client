@@ -3,6 +3,7 @@ const url = require('url');
 const util = require('util');
 
 const config = require('./assets/config.json');
+const linkedinApiFields = require('./linkedin_api_fields.json');
 
 const csv = require('csv');
 const linkedin = require('node-linkedin')(config.linkedinApiKey, config.linkedinApiSecret).init(config.linkedinApiToken);
@@ -30,14 +31,27 @@ module.exports = {
 
 async function getCompanyOrPeopleDetails(linkedinUrl) {
     console.log('Getting data from "' + linkedinUrl + '"...');
-    if(linkedinUrl.indexOf('https://www.linkedin.com/company/') != -1) {
-        const browser = await puppeteer.launch(browserOptions);
-        const companyDetails = await scrapCompanyPage(await createPage(browser, config.cookiesFile), linkedinUrl);
-        await browser.close();
-        return companyDetails;
+    let peopleDetails = null;
+
+    // if the provided URL is a people profile URL
+    if(linkedinUrl.indexOf('https://www.linkedin.com/company/') == -1) {
+        peopleDetails = await getPeopleData(linkedinUrl);
+        const companyId = peopleDetails['positions'] && peopleDetails['positions']['values'] && peopleDetails['positions']['values'][0]['company']['id'];
+        if(!companyId)
+            return peopleDetails;
+        linkedinUrl = 'https://www.linkedin.com/company/' + companyId;
     }
-    else
-        return await getPeopleData(linkedinUrl);
+
+    // scrap company data
+    const browser = await puppeteer.launch(browserOptions);
+    const companyDetails = await scrapCompanyPage(await createPage(browser, config.cookiesFile), linkedinUrl);
+    await browser.close();
+
+    if(peopleDetails) {
+        peopleDetails['company'] = companyDetails;
+        return peopleDetails;
+    }
+    return companyDetails;
 }
 
 async function manualLogIn() {
@@ -201,9 +215,18 @@ async function retrieveEmail(firstName, lastName, domainName) {
 
 async function getPeopleData(profileUrl) {
     return new Promise((resolve, reject) => {
-        linkedin.people.url(profileUrl, ['headline', 'summary', 'positions', 'email-address'], (err, user) => {
+        linkedin.people.url(profileUrl, linkedinApiFields, (err, user) => {
             if(err) reject(err);
             else resolve(user);
+        });
+    });
+}
+
+async function getCompanyData(companyId) {
+    return new Promise((resolve, reject) => {
+        linkedin.companies.company(companyId, (err, company) => {
+            if(err) reject(err);
+            else resolve(company);
         });
     });
 }
@@ -217,13 +240,17 @@ async function scrapCompanyPage(page, pageUrl = null) {
     return await page.evaluate(() => {
         const companyDetails = {};
         companyDetails['name'] = $('h1.org-top-card-module__name').text().trim();
+        companyDetails['industry'] = $('span.company-industries').text().trim();
         companyDetails['description'] = $('p.org-about-us-organization-description__text').text().trim();
         companyDetails['website'] = $('a.org-about-us-company-module__website').text().trim();
         companyDetails['headquarters'] = $('p.org-about-company-module__headquarters').text().trim();
         companyDetails['foundedYear'] = $('p.org-about-company-module__founded').text().trim();
         companyDetails['companyType'] = $('p.org-about-company-module__company-type').text().trim();
         companyDetails['companySize'] = $('p.org-about-company-module__company-staff-count-range').text().trim();
+        companyDetails['specialties'] = $('p.org-about-company-module__specialities').text().trim();
+        companyDetails['followers'] = $('span.org-top-card-module__followers-count').text().replace('followers', '').trim();
         companyDetails['membersOnLinkedin'] = $('a.snackbar-description-see-all-link').text().replace('See all', '').replace('employees on LinkedIn', '').replace(',', '').trim();
+        companyDetails['linkedinUrl'] = page.url();
         return companyDetails;
     });
 }
