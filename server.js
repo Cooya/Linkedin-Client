@@ -17,6 +17,7 @@ app.get('/request', async (req, res, next) => {
 
     try {
         const details = await linkedin.getCompanyOrPeopleDetails(req.query.linkedinUrl);
+        console.log(details);
         res.json({error: null, result: details});
         console.log('Response sent !');
     }

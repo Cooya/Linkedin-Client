@@ -29,16 +29,29 @@ class LinkedinForm extends React.Component {
             loading: true
         });
 
-        fetch('localhost:8080/request?linkedinUrl=' + this.state.linkedinUrl, {
+        const endpoint = '/request?linkedinUrl=' + this.state.linkedinUrl;
+        fetch(endpoint, {
             method: 'GET',
             credentials: 'same-origin'
         }).then((response) => {
-            const hasFailed = response.status !== 200;
-            this.setState({
-                error: hasFailed ? response.text() : null,
-                result: !hasFailed ? response.text() : null,
-                loading: false
-            });
+            if(response.status !== 200) {
+                return response.text().then((text) => {
+                    this.setState({
+                        error: text,
+                        result: null,
+                        loading: false
+                    });
+                });
+            }
+            else {
+                return response.json().then((json) => {
+                    this.setState({
+                        error: json['error'],
+                        result: json['result'],
+                        loading: false
+                    });
+                });
+            }
         }, (error) => {
             this.setState({
                 error: error.message,
@@ -78,7 +91,7 @@ class LinkedinForm extends React.Component {
                                 <input className="input" type="text" value={this.state.linkedinUrl} onChange={this.handleUrlChange} placeholder="Company or people profile URL"/>
                             </div>
                             <div className="control">
-                                <input type="submit" className="button is-linkedin" value="Submit"/>
+                                <input type="submit" className="button is-linkedin" value="Submit" disabled={this.state.loading}/>
                             </div>
                         </div>
                     </form>
@@ -86,22 +99,24 @@ class LinkedinForm extends React.Component {
             </section>
             <section>
                 {loading}
-                <DataArray data={this.state.result}/>
+                <JsonDisplay data={this.state.result}/>
                 <Message error={this.state.error}/>
             </section>
         </div>;
     }
 }
 
-class DataArray extends React.Component {
+class JsonDisplay extends React.Component {
     constructor(props) {
         super(props);
     }
 
     render() {
-        if(this.props.data)
+        if(!this.props.data)
             return null;
-        return <div/>; // TODO
+        return <div className="column box is-half is-offset-one-quarter content" style={{'marginTop': '20px', 'padding': '0'}}>
+            <pre><code>{JSON.stringify(this.props.data, null, 4)}</code></pre>
+        </div>;
     }
 }
 
@@ -113,10 +128,8 @@ class Message extends React.Component {
     render() {
         if(!this.props.error)
             return null;
-        return <div className="column is-half is-offset-one-quarter content" style={{'marginTop': '20px', 'padding': '0'}}>
-            <div className="notification is-danger">
-                {this.props.error}
-            </div>
+        return <div className="column box is-half is-offset-one-quarter content" style={{'marginTop': '20px', 'padding': '0'}}>
+            <div className="notification is-danger">{this.props.error}</div>;
         </div>;
     }
 }
