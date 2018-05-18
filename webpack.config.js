@@ -29,8 +29,8 @@ module.exports = {
       }
     ]
   },
-  mode: 'development',
-  watch: true,
+  //mode: 'development',
+  //watch: true,
   watchOptions: {
     poll: 1000
   }
