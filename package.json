@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server/server.js",
-    "server": "forever start server/server.js",
+    "server": "sudo forever start server/server.js",
     "build": "webpack --mode production",
     "dev-build": "webpack --watch=true --mode development"
   },
