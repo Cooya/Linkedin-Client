@@ -2,7 +2,7 @@ const express = require('express');
 const linkedin = require('./linkedin');
 const Raven = require('raven');
 
-const config = require('./assets/config.json');
+const config = require('./assets/config.js');
 Raven.config(config.sentryEndpoint).install();
 const app = express();
 const ipAddresses = {};
@@ -15,7 +15,7 @@ process.on('unhandledRejection', (e) => {
 });
 
 app.get('/', (req, res, next) => {
-    res.sendFile(__dirname + '/web/index.html');
+    res.sendFile(config.rootWebFolder + 'index.html');
 });
 
 app.get('/request', saveIpAddress, async (req, res, next) => {
@@ -37,7 +37,7 @@ app.get('/request', saveIpAddress, async (req, res, next) => {
     }
 });
 
-app.use('/assets', express.static('web/assets'));
+app.use('/assets', express.static(config.webAssetsFolder));
 
 console.log('Server started on port ' + config.serverPort + ', waiting for requests...');
 app.listen(config.serverPort);

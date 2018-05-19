@@ -2,8 +2,8 @@ const fs = require('fs');
 const url = require('url');
 const util = require('util');
 
-const config = require('./assets/config.json');
-const linkedinApiFields = require('./linkedin_api_fields.json');
+const config = require('./assets/config.js');
+const linkedinApiFields = require('./assets/linkedin_api_fields.json');
 
 const csv = require('csv');
 const linkedin = require('node-linkedin')(config.linkedinApiKey, config.linkedinApiSecret).init(config.linkedinApiToken);
@@ -34,7 +34,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl) {
     let peopleDetails = null;
 
     // if the provided URL is a people profile URL
-    if(linkedinUrl.indexOf('https://www.linkedin.com/company/') == -1) {
+    if(linkedinUrl.indexOf('https://www.linkedin.com/company/') == -1 && linkedinUrl.indexOf('https://www.linkedin.com/school/') == -1) {
         peopleDetails = await getPeopleData(linkedinUrl);
         const companyId = peopleDetails['positions'] && peopleDetails['positions']['values'] && peopleDetails['positions']['values'][0]['company']['id'];
         if(!companyId)
@@ -237,7 +237,7 @@ async function scrapCompanyPage(page, pageUrl = null) {
     await page.waitFor('#org-about-company-module__show-details-btn');
     await page.click('#org-about-company-module__show-details-btn');
     await page.waitForSelector('div.org-about-company-module__about-us-extra');
-    return await page.evaluate(() => {
+    const companyDetails = await page.evaluate(() => {
         const companyDetails = {};
         companyDetails['name'] = $('h1.org-top-card-module__name').text().trim();
         companyDetails['industry'] = $('span.company-industries').text().trim();
@@ -250,15 +250,18 @@ async function scrapCompanyPage(page, pageUrl = null) {
         companyDetails['specialties'] = $('p.org-about-company-module__specialities').text().trim();
         companyDetails['followers'] = $('span.org-top-card-module__followers-count').text().replace('followers', '').trim();
         companyDetails['membersOnLinkedin'] = $('a.snackbar-description-see-all-link').text().replace('See all', '').replace('employees on LinkedIn', '').replace(',', '').trim();
-        companyDetails['linkedinUrl'] = page.url();
         return companyDetails;
     });
+    companyDetails['linkedinUrl'] = page.url();
+    return companyDetails;
 }
 
 async function createPage(browser, cookiesFile) {
+    console.debug('Creating page...');
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0');
     await loadCookies(page, cookiesFile);
+    console.debug('Page created.');
     return page;
 }
 
@@ -348,7 +351,7 @@ async function loadCookies(page, cookiesFile) {
         cookies = await readFile(cookiesFile);
     }
     catch(e) {
-        return console.log('Cookies file does not exist.');
+        throw new Error('Cookies file does not exist.');
     }
     await page.setCookie(...JSON.parse(cookies));
     console.log('Cookies loaded.');
