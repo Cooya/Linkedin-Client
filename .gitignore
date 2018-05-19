@@ -1,5 +1,5 @@
 node_modules/
-server/assets/config.json
+server/assets/config.js
 server/assets/cookies.json
 web/assets/bundle.js
 .idea/
