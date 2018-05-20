@@ -29,7 +29,8 @@ class LinkedinForm extends React.Component {
             loading: true
         });
 
-        const endpoint = '/request?linkedinUrl=' + this.state.linkedinUrl;
+        const token = new URL(window.location.href).searchParams.get('token');
+        const endpoint = '/request?linkedinUrl=' + this.state.linkedinUrl + (token ? '&token=' + token : '');
         fetch(endpoint, {
             method: 'GET',
             credentials: 'same-origin'
@@ -82,13 +83,21 @@ class LinkedinForm extends React.Component {
             </section>
             <section>
                 <div className="column box is-half is-offset-one-quarter content" style={{'marginTop': '50px'}}>
-                    <p>Submit a company page or people profile URL and data will be scrapped and displayed. This a demonstration tool, you got 5 shots.</p>
-                    <p>This tool is using either the Linkedin API for people profiles or a headless browser for company pages.
-                        If you are interested by retrieving data from Linkedin, to complete your leads file for instance, feel free to <a href="http://cooya.fr">contact me</a>.</p>
+                    <p>
+                        Submit a company page or people profile URL and data will be scrapped and displayed. This a demonstration tool, you got 10 shots.
+                    </p>
+                    <p>
+                        This tool is using either the Linkedin API for people profiles or a headless browser for company pages.
+                        If you submit a people profile URL, the tool will also try to retrieve information about the person's company if filled out.
+                        Please also note that the person's mail address can be guessed in some cases, through a third-party API but it is not available in this demonstration.
+                    </p>
+                    <p>
+                        If you are interested by retrieving data from Linkedin, to complete your leads file for instance, feel free to <a href="http://cooya.fr">contact me</a>.
+                    </p>
                     <form onSubmit={this.handleSubmit}>
                         <div className="field is-grouped">
                             <div className="control is-expanded">
-                                <input className="input" type="text" value={this.state.linkedinUrl} onChange={this.handleUrlChange} placeholder="Company or people profile URL"/>
+                                <input className="input" type="text" value={this.state.linkedinUrl} onChange={this.handleUrlChange} placeholder="Company page or people profile URL"/>
                             </div>
                             <div className="control">
                                 <input type="submit" className="button is-linkedin" value="Submit" disabled={this.state.loading}/>

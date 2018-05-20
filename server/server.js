@@ -46,9 +46,11 @@ function saveIpAddress(req, res, next) {
     const ipAddress = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).replace('::ffff:', '');
     ipAddresses[ipAddress] = (ipAddresses[ipAddress] || 0) + 1;
     console.log('Number of shots for this address : ' + ipAddresses[ipAddress]);
-    if(ipAddresses[ipAddress] > 5)
+    if(req.query.token != config.adminToken && ipAddresses[ipAddress] > 10)
         res.json({error: 'You have reached your maximum number of trials, contact me if you wish to work with me.'});
     else {
+        if(req.query.token == config.adminToken)
+            console.log('Valid token admin provided.');
         req.ipAddress = ipAddress;
         next();
     }
