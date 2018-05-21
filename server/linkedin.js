@@ -32,18 +32,33 @@ module.exports = {
 async function getCompanyOrPeopleDetails(linkedinUrl) {
     console.log('Getting data from "' + linkedinUrl + '"...');
     let peopleDetails = null;
+    let browser = null;
 
     // if the provided URL is a people profile URL
     if(linkedinUrl.indexOf('https://www.linkedin.com/company/') == -1 && linkedinUrl.indexOf('https://www.linkedin.com/school/') == -1) {
+        // get people data through API
         peopleDetails = await getPeopleData(linkedinUrl);
-        const companyId = peopleDetails['positions'] && peopleDetails['positions']['values'] && peopleDetails['positions']['values'][0]['company']['id'];
-        if(!companyId)
+        if(peopleDetails['message']) // the linkedin URL is invalid
+            return {error: peopleDetails['message']};
+
+        // get people data through web scraper if the people profile is private
+        peopleDetails['isPrivateProfile'] = peopleDetails['id'] == 'private';
+        if(peopleDetails['isPrivateProfile']) {
+            browser = await puppeteer.launch(browserOptions);
+            peopleDetails = await scrapPeopleProfile(await createPage(browser, config.cookiesFile), linkedinUrl);
+        }
+
+        // return if the company page URL is not filled out
+        const companyId = peopleDetails['positions']['values'] && peopleDetails['positions']['values'][0]['company']['id'];
+        if(!companyId) {
+            if(browser) await browser.close();
             return peopleDetails;
+        }
         linkedinUrl = 'https://www.linkedin.com/company/' + companyId;
     }
 
     // scrap company data
-    const browser = await puppeteer.launch(browserOptions);
+    if(!browser) browser = await puppeteer.launch(browserOptions);
     const companyDetails = await scrapCompanyPage(await createPage(browser, config.cookiesFile), linkedinUrl);
     await browser.close();
 
@@ -231,9 +246,42 @@ async function getCompanyData(companyId) {
     });
 }
 
-async function scrapCompanyPage(page, pageUrl = null) {
-    if(pageUrl)
-        await page.goto(pageUrl);
+async function scrapPeopleProfile(page, url = null) {
+    if(url)
+        await page.goto(url);
+    await page.waitForSelector('section.pv-profile-section');
+    const toggleButton = await page.$('pv-top-card-section__summary-toggle-button');
+    if(toggleButton)
+        await toggleButton.click();
+    await scrollPage(page, '#experience-section', 0.5);
+    const peopleDetails = await page.evaluate(() => {
+        const name = $('h1.pv-top-card-section__name').text().trim().split(' ');
+        const experiences = $('#experience-section li').get().map((elt) => {
+            elt = $(elt);
+            return {
+                companyName: elt.find('span.pv-entity__secondary-title').text().trim(),
+                linkedinUrl: 'https://www.linkedin.com' + elt.find('a.ember-view').attr('href')
+            }
+        });
+        return {
+            'firstName': name[0],
+            'lastName': name[1],
+            'headline': $('h2.pv-top-card-section__headline').text().trim(),
+            'location': $('h3.pv-top-card-section__location').text().trim(),
+            'summary': $('p.pv-top-card-section__summary-text').text().trim(),
+            'currentCompany': $('a.pv-top-card-v2-section__link-experience span').text().trim(),
+            'school': $('a.pv-top-card-v2-section__link-education span').text().trim(),
+            'connectionsNumber': $('span.pv-top-card-v2-section__connections').text().replace('connections', '').trim(),
+            'positions': experiences
+        };
+    });
+    peopleDetails['linkedinUrl'] = page.url();
+    return peopleDetails;
+}
+
+async function scrapCompanyPage(page, url = null) {
+    if(url)
+        await page.goto(url);
     await page.waitFor('#org-about-company-module__show-details-btn');
     await page.click('#org-about-company-module__show-details-btn');
     await page.waitForSelector('div.org-about-company-module__about-us-extra');
@@ -289,7 +337,7 @@ async function scrollPage(page, selector, targetPosition = 1) {
     while(true) {
         await page.evaluate('window.scrollTo(0, document.body.scrollHeight * ' + targetPosition + ')');
         try {
-            await page.waitForSelector('#experience-section', {timeout: 1000});
+            await page.waitForSelector(selector, {timeout: 1000});
             return;
         }
         catch(e) {

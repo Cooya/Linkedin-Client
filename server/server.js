@@ -3,17 +3,19 @@ const linkedin = require('./linkedin');
 const Raven = require('raven');
 
 const config = require('./assets/config.js');
-Raven.config(config.sentryEndpoint).install();
+Raven.config(config.sentryEndpoint, {
+    shouldSendCallback: (data) => {
+        return process.env.NODE_ENV == 'production'
+    }
+}).install();
 const app = express();
 const ipAddresses = {};
 
 process.on('uncaughtException', (e) => {
-    if(process.env.NODE_ENV == 'production')
-        Raven.captureException(e);
+
 });
 process.on('unhandledRejection', (e) => {
-    if(process.env.NODE_ENV == 'production')
-        Raven.captureException(e);
+
 });
 
 app.get('/', (req, res, next) => {
@@ -29,13 +31,14 @@ app.get('/request', saveIpAddress, async (req, res, next) => {
     try {
         const details = await linkedin.getCompanyOrPeopleDetails(req.query.linkedinUrl);
         //console.log(details);
-        res.json({error: null, result: details});
+        if(details['error'])
+            res.json({error: details['error'], result: null});
+        else
+            res.json({error: null, result: details});
         console.log('Response sent !');
     }
     catch(e) {
         console.error(e);
-        if(process.env.NODE_ENV == 'production')
-            Raven.captureException(e);
         res.json({error: 'Something went wrong...'});
     }
 });

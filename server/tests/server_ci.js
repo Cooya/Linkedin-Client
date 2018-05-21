@@ -9,8 +9,7 @@ describe('Linkedin scraper form tests', () => {
         const url = 'toto';
         request(app).get('/request?linkedinUrl=' + url).end((err, res) => {
             expect(res.statusCode).to.equal(200);
-            expect(res.body.error).to.equal(null);
-            expect(res.body.result.status).to.equal(400);
+            expect(res.body.error).to.have.string('Public profile URL is not correct');
             done();
         });
     });
@@ -19,8 +18,7 @@ describe('Linkedin scraper form tests', () => {
         const url = 'https://www.linkedin.com/in/toto';
         request(app).get('/request?linkedinUrl=' + url).end((err, res) => {
             expect(res.statusCode).to.equal(200);
-            expect(res.body.error).to.equal(null);
-            expect(res.body.result.status).to.equal(404);
+            expect(res.body.error).to.have.string('Couldn\'t find member');
             done();
         });
     });
@@ -42,6 +40,18 @@ describe('Linkedin scraper form tests', () => {
             expect(res.body.error).to.equal(null);
             expect(res.body.result['firstName']).to.equal('Nicolas');
             expect(res.body.result['company']['name']).to.equal('Yaal');
+            done();
+        });
+    });
+
+    it('Private people profile', (done) => {
+        const url = 'https://www.linkedin.com/in/benoitgantaume/';
+        request(app).get('/request?linkedinUrl=' + url).end((err, res) => {
+            expect(res.statusCode).to.equal(200);
+            expect(res.body.error).to.equal(null);
+            expect(res.body.result['firstName']).to.equal('Benoit');
+            expect(res.body.result['positions'][0]['companyName']).to.equal('artisandeveloppeur.fr');
+
             done();
         });
     });
