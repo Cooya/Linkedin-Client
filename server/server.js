@@ -37,10 +37,14 @@ app.get('/request', saveIpAddress, async (req, res, next) => {
     }
 });
 
-app.use('/assets', express.static(config.webAssetsFolder));
+if(process.env.NODE_ENV == 'test')
+    module.exports = app;
+else {
+    app.use('/assets', express.static(config.webAssetsFolder));
 
-console.log('Server started on port ' + config.serverPort + ', waiting for requests...');
-app.listen(config.serverPort);
+    console.log('Server started on port ' + config.serverPort + ', waiting for requests...');
+    app.listen(config.serverPort);
+}
 
 function saveIpAddress(req, res, next) {
     const ipAddress = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).replace('::ffff:', '');
