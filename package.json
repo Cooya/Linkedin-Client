@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "NODE_ENV=test mocha server/tests --timeout 30000",
-    "start": "node server/server.js",
-    "server": "sudo forever start server/server.js",
+    "start": "NODE_ENV=development node server/server.js",
+    "server": "NODE_ENV=production sudo forever start server/server.js",
     "build": "webpack --mode production",
     "dev-build": "webpack --watch=true --mode development"
   },
