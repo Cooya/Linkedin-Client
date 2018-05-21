@@ -8,10 +8,12 @@ const app = express();
 const ipAddresses = {};
 
 process.on('uncaughtException', (e) => {
-    Raven.captureException(e);
+    if(process.env.NODE_ENV == 'production')
+        Raven.captureException(e);
 });
 process.on('unhandledRejection', (e) => {
-    Raven.captureException(e);
+    if(process.env.NODE_ENV == 'production')
+        Raven.captureException(e);
 });
 
 app.get('/', (req, res, next) => {
@@ -32,7 +34,8 @@ app.get('/request', saveIpAddress, async (req, res, next) => {
     }
     catch(e) {
         console.error(e);
-        Raven.captureException(e);
+        if(process.env.NODE_ENV == 'production')
+            Raven.captureException(e);
         res.json({error: 'Something went wrong...'});
     }
 });
