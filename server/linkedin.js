@@ -46,7 +46,6 @@ async function getCompanyOrPeopleDetails(linkedinUrl) {
         if(peopleDetails['isPrivateProfile']) {
             browser = await puppeteer.launch(browserOptions);
             peopleDetails = await scrapPeopleProfile(await createPage(browser, config.cookiesFile), linkedinUrl);
-            delete peopleDetails['relatedPeople'];
         }
 
         // return if the company page URL is not filled out
@@ -68,6 +67,10 @@ async function getCompanyOrPeopleDetails(linkedinUrl) {
         return peopleDetails;
     }
     return companyDetails;
+}
+
+async function getPeopleDetails(linkedinUrl, forceScrapping = false) {
+    //TODO
 }
 
 async function manualLogIn() {
