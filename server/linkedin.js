@@ -2,7 +2,7 @@ const fs = require('fs');
 const url = require('url');
 const util = require('util');
 
-const config = require('./assets/config.js');
+const config = require('./assets/config');
 const linkedinApiFields = require('./assets/linkedin_api_fields.json');
 
 const csv = require('csv');
@@ -46,6 +46,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl) {
         if(peopleDetails['isPrivateProfile']) {
             browser = await puppeteer.launch(browserOptions);
             peopleDetails = await scrapPeopleProfile(await createPage(browser, config.cookiesFile), linkedinUrl);
+            delete peopleDetails['relatedPeople'];
         }
 
         // return if the company page URL is not filled out
@@ -263,16 +264,25 @@ async function scrapPeopleProfile(page, url = null) {
                 linkedinUrl: 'https://www.linkedin.com' + elt.find('a.ember-view').attr('href')
             }
         });
+        const relatedPeople = $('section.pv-browsemap-section li').get().map((elt) => {
+           elt = $(elt);
+           return {
+               name: elt.find('span.actor-name').text().trim(),
+               position: elt.find('p.browsemap-headline').text().trim(),
+               linkedinUrl: elt.find('a.pv-browsemap-section__member').attr('href')
+           }
+        });
         return {
-            'firstName': name[0],
-            'lastName': name[1],
-            'headline': $('h2.pv-top-card-section__headline').text().trim(),
-            'location': $('h3.pv-top-card-section__location').text().trim(),
-            'summary': $('p.pv-top-card-section__summary-text').text().trim(),
-            'currentCompany': $('a.pv-top-card-v2-section__link-experience span').text().trim(),
-            'school': $('a.pv-top-card-v2-section__link-education span').text().trim(),
-            'connectionsNumber': $('span.pv-top-card-v2-section__connections').text().replace('connections', '').trim(),
-            'positions': experiences
+            firstName: name[0],
+            lastName: name[1],
+            headline: $('h2.pv-top-card-section__headline').text().trim(),
+            location: $('h3.pv-top-card-section__location').text().trim(),
+            summary: $('p.pv-top-card-section__summary-text').text().trim(),
+            currentCompany: $('a.pv-top-card-v2-section__link-experience span').text().trim(),
+            school: $('a.pv-top-card-v2-section__link-education span').text().trim(),
+            connectionsNumber: $('span.pv-top-card-v2-section__connections').text().replace('connections', '').trim(),
+            positions: experiences,
+            relatedPeople: relatedPeople
         };
     });
     peopleDetails['linkedinUrl'] = page.url();
