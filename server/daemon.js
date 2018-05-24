@@ -1,27 +1,29 @@
-const puppeteer = require('puppeteer');
+const sleep = require('sleep');
 
 const linkedin = require('./linkedin');
+const pup = require('./pup_utils');
+const config = require('./assets/config');
 
 const startingPointUrl = 'https://www.linkedin.com/in/nicomarcy/';
-const peopleToVisit = [startingPointUrl];
-const index = 0;
+let peopleToVisit = [startingPointUrl];
+let index = 0;
 
-const browserOptions = {
-    args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox'
-    ],
-    headless: true
-};
+(async function main() {
+    const browser = await pup.runBrowser();
+    const page = await pup.createPage(browser, config.cookiesFile);
 
-async function main() {
     let peopleDetails;
-    const browser = await puppeteer.launch(browserOptions);
-
     while(index < peopleToVisit.length) {
-        peopleDetails = await linkedin.getPeopleDetails(peopleToVisit[index]);
-
+        peopleDetails = await linkedin.getCompanyOrPeopleDetails(peopleToVisit[index], {page: page, forcePeopleScraping: true});
+        console.log(peopleDetails);
+        for(let relatedPeople of peopleDetails['relatedPeople'])
+            if(peopleToVisit.indexOf(relatedPeople['linkedinUrl']) == -1)
+                peopleToVisit.push(relatedPeople['linkedinUrl']);
+        console.log(peopleToVisit);
+        index++;
+        console.log('Sleeping...');
+        sleep.msleep(20000);
     }
 
     await browser.close();
-}
+})();

@@ -7,7 +7,7 @@ const linkedinApiFields = require('./assets/linkedin_api_fields.json');
 
 const csv = require('csv');
 const linkedin = require('node-linkedin')(config.linkedinApiKey, config.linkedinApiSecret).init(config.linkedinApiToken);
-const puppeteer = require('puppeteer');
+const pup = require('./pup_utils');
 const request = require('request');
 const sleep = require('sleep');
 
@@ -17,120 +17,65 @@ const get = util.promisify(request.get);
 const parseCSV = util.promisify(csv.parse);
 const stringifyCSV = util.promisify(csv.stringify);
 
-const browserOptions = {
-    args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox'
-    ],
-    headless: true
-};
-
 module.exports = {
     getCompanyOrPeopleDetails: getCompanyOrPeopleDetails
 };
 
-async function getCompanyOrPeopleDetails(linkedinUrl) {
+// options = page, forcePeopleScraping, skipCompanyScraping
+async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
     console.log('Getting data from "' + linkedinUrl + '"...');
-    let peopleDetails = null;
     let browser = null;
+    let page = options.page;
+    let peopleDetails = null;
 
     // if the provided URL is a people profile URL
     if(linkedinUrl.indexOf('https://www.linkedin.com/company/') == -1 && linkedinUrl.indexOf('https://www.linkedin.com/school/') == -1) {
-        // get people data through API
-        peopleDetails = await getPeopleData(linkedinUrl);
-        if(peopleDetails['message']) // the linkedin URL is invalid
-            return {error: peopleDetails['message']};
+        if(options.forcePeopleScraping) { // force people profile scraping instead of using the API
+            if(!page) {
+                browser = await pup.runBrowser();
+                page = await pup.createPage(browser, config.cookiesFile);
+            }
+            peopleDetails = await scrapPeopleProfile(page, linkedinUrl);
+        }
+        else {
+            // get people data through API
+            peopleDetails = await getPeopleData(linkedinUrl);
+            if(peopleDetails['message']) // the linkedin URL is invalid
+                return {error: peopleDetails['message']};
 
-        // get people data through web scraper if the people profile is private
-        peopleDetails['isPrivateProfile'] = peopleDetails['id'] == 'private';
-        if(peopleDetails['isPrivateProfile']) {
-            browser = await puppeteer.launch(browserOptions);
-            peopleDetails = await scrapPeopleProfile(await createPage(browser, config.cookiesFile), linkedinUrl);
+            // get people data through web scraper if the people profile is private
+            peopleDetails['isPrivateProfile'] = peopleDetails['id'] == 'private';
+            if(peopleDetails['isPrivateProfile']) {
+                if(!page) {
+                    browser = await pup.runBrowser();
+                    page = await pup.createPage(browser, config.cookiesFile);
+                }
+                peopleDetails = await scrapPeopleProfile(page, linkedinUrl);
+            }
         }
 
         // return if the company page URL is not filled out
         const companyId = peopleDetails['positions']['values'] && peopleDetails['positions']['values'][0]['company']['id'];
-        if(!companyId) {
-            if(browser) await browser.close();
+        if(!companyId || options.skipCompanyScraping) {
+            if(!options.page && browser) await browser.close();
             return peopleDetails;
         }
         linkedinUrl = 'https://www.linkedin.com/company/' + companyId;
     }
 
     // scrap company data
-    if(!browser) browser = await puppeteer.launch(browserOptions);
-    const companyDetails = await scrapCompanyPage(await createPage(browser, config.cookiesFile), linkedinUrl);
-    await browser.close();
+    if(!page) {
+        browser = await pup.runBrowser();
+        page = await pup.createPage(browser, config.cookiesFile);
+    }
+    const companyDetails = await scrapCompanyPage(page, linkedinUrl);
+    if(!options.page) await browser.close();
 
     if(peopleDetails) {
         peopleDetails['company'] = companyDetails;
         return peopleDetails;
     }
     return companyDetails;
-}
-
-async function getPeopleDetails(linkedinUrl, forceScrapping = false) {
-    //TODO
-}
-
-async function manualLogIn() {
-    const browser = await puppeteer.launch(browserOptions);
-    const page = await createPage(browser, config.cookiesFile);
-    await page.waitFor(60000);
-    await saveCookies(page, config.cookiesFile);
-    await browser.close();
-}
-
-async function getCompaniesData() {
-    // load entries from csv file
-    const entries = (await parseCSV(await readFile(config.csvFile), {'relax_column_count': true}));
-    console.log(entries.length + ' entries to process.');
-
-    // process entries
-    const browser = await puppeteer.launch(browserOptions);
-    const page = await createPage(browser, config.cookiesFile);
-    await processEntries(page, entries, config.csvFile, config.scrapingInterval);
-    await browser.close();
-
-    console.log('Process done.');
-}
-
-async function getEmails() {
-    // load entries from csv file
-    const entries = (await parseCSV(await readFile(config.csvFile), {'relax_column_count': true}));
-    console.log(entries.length + ' entries to process.');
-
-    let entry;
-    let emailResult;
-    for(let i in entries) {
-        if(i == 0)
-            continue;
-
-        entry = entries[i];
-        if(entry.length == 12) {
-            console.log('Skipping already processed entry ' + i + '...');
-            continue;
-        }
-
-        if(entry[9] == 'N/A') { // cannot get the email address
-            console.log('Cannot get email address for the entry ' + i + '.');
-            entries[i] = entry.concat(['N/A', 'N/A']);
-            console.log('Saving entries into file...');
-            await writeFile(config.csvFile, await stringifyCSV(entries));
-            continue;
-        }
-
-        console.log('Processing entry ' + i + '...');
-        emailResult = await retrieveEmail(entry[0], entry[1], entry[9]);
-        entries[i] = emailResult ? entry.concat(emailResult['email'], emailResult['accuracy']) : entry.concat(['N/A', 'N/A']);
-
-        console.log('Saving entries into file...');
-        await writeFile(config.csvFile, await stringifyCSV(entries));
-
-        sleep.sleep(1);
-    }
-
-    console.log('Process done.');
 }
 
 async function processEntries(page, entries, csvFile, interval) {
@@ -147,7 +92,7 @@ async function processEntries(page, entries, csvFile, interval) {
             continue; // skip the already processed entries
         }
 
-        await goTo(page, entry[3], 30000);
+        await pup.goTo(page, entry[3], 30000);
         await page.waitFor(2000);
         currentPageUrl = page.url();
         if(currentPageUrl.indexOf('https://www.linkedin.com/in/unavailable/') != -1) {
@@ -161,7 +106,7 @@ async function processEntries(page, entries, csvFile, interval) {
             continue;
         }
 
-        await scrollPage(page, '#experience-section', 0.5);
+        await pup.scrollPage(page, '#experience-section', 0.5);
 
         // wait a bit to prevent robot detection
         console.log(util.format('Waiting for %d ms.', interval / 2));
@@ -173,7 +118,7 @@ async function processEntries(page, entries, csvFile, interval) {
             throw Error('Cannot find the company link.');
 
         // going to the company page
-        await click(page, companyLink);
+        await pup.click(page, companyLink);
 
         // getting details about the company
         currentPageUrl = page.url();
@@ -241,15 +186,6 @@ async function getPeopleData(profileUrl) {
     });
 }
 
-async function getCompanyData(companyId) {
-    return new Promise((resolve, reject) => {
-        linkedin.companies.company(companyId, (err, company) => {
-            if(err) reject(err);
-            else resolve(company);
-        });
-    });
-}
-
 async function scrapPeopleProfile(page, url = null) {
     if(url)
         await page.goto(url);
@@ -257,7 +193,7 @@ async function scrapPeopleProfile(page, url = null) {
     const toggleButton = await page.$('pv-top-card-section__summary-toggle-button');
     if(toggleButton)
         await toggleButton.click();
-    await scrollPage(page, '#experience-section', 0.5);
+    await pup.scrollPage(page, '#experience-section', 0.5);
     const peopleDetails = await page.evaluate(() => {
         const name = $('h1.pv-top-card-section__name').text().trim().split(' ');
         const experiences = $('#experience-section li').get().map((elt) => {
@@ -272,7 +208,7 @@ async function scrapPeopleProfile(page, url = null) {
            return {
                name: elt.find('span.actor-name').text().trim(),
                position: elt.find('p.browsemap-headline').text().trim(),
-               linkedinUrl: elt.find('a.pv-browsemap-section__member').attr('href')
+               linkedinUrl: 'https://www.linkedin.com' + elt.find('a.pv-browsemap-section__member').attr('href')
            }
         });
         return {
@@ -283,7 +219,7 @@ async function scrapPeopleProfile(page, url = null) {
             summary: $('p.pv-top-card-section__summary-text').text().trim(),
             currentCompany: $('a.pv-top-card-v2-section__link-experience span').text().trim(),
             school: $('a.pv-top-card-v2-section__link-education span').text().trim(),
-            connectionsNumber: $('span.pv-top-card-v2-section__connections').text().replace('connections', '').trim(),
+            connectionsNumber: $('span.pv-top-card-v2-section__connections').text().match(/[0-9]+/)[0],
             positions: experiences,
             relatedPeople: relatedPeople
         };
@@ -317,81 +253,79 @@ async function scrapCompanyPage(page, url = null) {
     return companyDetails;
 }
 
-async function createPage(browser, cookiesFile) {
-    console.debug('Creating page...');
-    const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0');
-    await loadCookies(page, cookiesFile);
-    console.debug('Page created.');
-    return page;
+
+
+// NOT USED ANYMORE
+async function manualLogIn() {
+    const browser = await pup.runBrowser();
+    const page = await pup.createPage(browser, config.cookiesFile);
+    await page.waitFor(60000);
+    await pup.saveCookies(page, config.cookiesFile);
+    await browser.close();
 }
 
-async function goTo(page, url, timeout) {
-    console.log('Going to %s...', url);
+async function getCompaniesData() {
+    // load entries from csv file
+    const entries = (await parseCSV(await readFile(config.csvFile), {'relax_column_count': true}));
+    console.log(entries.length + ' entries to process.');
 
-    const options = timeout ? {timeout: timeout} : {};
-    let again = true;
-    while(again) {
-        try {
-            await page.goto(url, options);
-            again = false;
+    // process entries
+    const browser = await pup.runBrowser();
+    const page = await pup.createPage(browser, config.cookiesFile);
+    await processEntries(page, entries, config.csvFile, config.scrapingInterval);
+    await browser.close();
+
+    console.log('Process done.');
+}
+
+async function getEmails() {
+    // load entries from csv file
+    const entries = (await parseCSV(await readFile(config.csvFile), {'relax_column_count': true}));
+    console.log(entries.length + ' entries to process.');
+
+    let entry;
+    let emailResult;
+    for(let i in entries) {
+        if(i == 0)
+            continue;
+
+        entry = entries[i];
+        if(entry.length == 12) {
+            console.log('Skipping already processed entry ' + i + '...');
+            continue;
         }
-        catch(e) {
-            if(e.message.indexOf('Navigation Timeout Exceeded') != -1)
-                console.log('goTo() timeout !');
-            else
-                throw e;
+
+        if(entry[9] == 'N/A') { // cannot get the email address
+            console.log('Cannot get email address for the entry ' + i + '.');
+            entries[i] = entry.concat(['N/A', 'N/A']);
+            console.log('Saving entries into file...');
+            await writeFile(config.csvFile, await stringifyCSV(entries));
+            continue;
         }
+
+        console.log('Processing entry ' + i + '...');
+        emailResult = await retrieveEmail(entry[0], entry[1], entry[9]);
+        entries[i] = emailResult ? entry.concat(emailResult['email'], emailResult['accuracy']) : entry.concat(['N/A', 'N/A']);
+
+        console.log('Saving entries into file...');
+        await writeFile(config.csvFile, await stringifyCSV(entries));
+
+        sleep.sleep(1);
     }
+
+    console.log('Process done.');
 }
 
-async function scrollPage(page, selector, targetPosition = 1) {
-    console.log('Scrolling the page...');
-    while(true) {
-        await page.evaluate('window.scrollTo(0, document.body.scrollHeight * ' + targetPosition + ')');
-        try {
-            await page.waitForSelector(selector, {timeout: 1000});
-            return;
-        }
-        catch(e) {
-            targetPosition = targetPosition >= 1 ? 0 : targetPosition + 0.1;
-            console.log('Scrolling again to ' + targetPosition + '...');
-        }
-    }
-}
 
-async function click(page, element, timeout) {
-    console.log('Clicking on element...');
 
-    const options = timeout ? {timeout: timeout} : {};
-    let again = true;
-    while(again) {
-        try {
-            const navigationPromise = page.waitForNavigation(options);
-            await page.evaluate((el) => {
-                el.click();
-            }, element);
-            await navigationPromise;
-            again = false;
-        }
-        catch(e) {
-            if(e.message.indexOf('Navigation Timeout Exceeded') != -1) {
-                console.error('click() timeout !');
-                await reloadPage(page);
-            }
-            else
-                throw e;
-        }
-    }
-}
-
-async function reloadPage(page, timeout) {
-    console.log('Reloading page...');
-
-    const options = timeout ? {timeout: timeout} : {};
-    const navigationPromise = page.waitForNavigation(options);
-    await page.evaluate('location.reload()');
-    await navigationPromise;
+// NOT WORKING
+async function getCompanyData(companyId) {
+    return new Promise((resolve, reject) => {
+        linkedin.companies.company(companyId, (err, company) => {
+            if(err) reject(err);
+            else resolve(company);
+        });
+    });
 }
 
 async function logIn(page, login, password) {
@@ -403,44 +337,4 @@ async function logIn(page, login, password) {
         //document.querySelector('#login-submit').click();
     }, login, password);
     console.log('Logged in.');
-}
-
-async function loadCookies(page, cookiesFile) {
-    console.log('Loading cookies...');
-    let cookies;
-    try {
-        cookies = await readFile(cookiesFile);
-    }
-    catch(e) {
-        throw new Error('Cookies file does not exist.');
-    }
-    await page.setCookie(...JSON.parse(cookies));
-    console.log('Cookies loaded.');
-}
-
-async function saveCookies(page, cookiesFile) {
-    console.log('Saving cookies...');
-    const cookies = JSON.stringify(await page.cookies());
-    await writeFile(cookiesFile, cookies);
-    console.log('Cookies saved.');
-}
-
-async function deleteCookiesFile(cookiesFile) {
-    const fileExists = await fs.exists(cookiesFile);
-    if(!fileExists)
-        return console.log('Cookies file does not exist.');
-    await fs.unlink(cookiesFile);
-    console.log('Cookies file deleted.');
-}
-
-async function getValue(page, selector) {
-    return await page.evaluate((selector) => {
-        return $(selector).val();
-    }, selector);
-}
-
-async function getHref(page, selector) {
-    return await page.evaluate((selector) => {
-        return $(selector).attr('href');
-    }, selector);
 }
