@@ -273,14 +273,6 @@ async function retrieveEmail(firstName, lastName, domainName) {
     }
 }
 
-async function manualLogIn() {
-    const browser = await pup.runBrowser();
-    const page = await pup.createPage(browser, config.cookiesFile);
-    await page.waitFor(60000);
-    await pup.saveCookies(page, config.cookiesFile);
-    await browser.close();
-}
-
 async function getCompaniesData() {
     // load entries from csv file
     const entries = (await parseCSV(await readFile(config.csvFile), {'relax_column_count': true}));
