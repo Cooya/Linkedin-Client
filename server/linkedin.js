@@ -29,7 +29,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
     let peopleDetails = null;
 
     // if the provided URL is a people profile URL
-    if(linkedinUrl.indexOf('https://www.linkedin.com/company/') == -1 && linkedinUrl.indexOf('https://www.linkedin.com/school/') == -1) {
+    if(!isCompanyOrSchoolPage(linkedinUrl)) {
         if(options.forcePeopleScraping) { // force people profile scraping instead of using the API
             if(!page) {
                 browser = await pup.runBrowser();
@@ -54,13 +54,24 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
             }
         }
 
-        // return if the company page URL is not filled out
-        const companyId = peopleDetails['positions']['values'] && peopleDetails['positions']['values'][0]['company']['id'];
-        if(!companyId || options.skipCompanyScraping) {
+        // return if option for skipping company scraping is set
+        if(options.skipCompanyScraping) {
             if(!options.page && browser) await browser.close();
             return peopleDetails;
         }
-        linkedinUrl = 'https://www.linkedin.com/company/' + companyId;
+
+        // try to get the company page url for the next step
+        const companyId = peopleDetails['positions']['values'] && peopleDetails['positions']['values'][0]['company']['id'];
+        if(companyId)
+            linkedinUrl = 'https://www.linkedin.com/company/' + companyId;
+        else
+            linkedinUrl = peopleDetails['currentCompany'] && peopleDetails['currentCompany']['linkedinUrl'];
+
+        // return if company page url has not been found or if the URL is not a company page URL
+        if(!linkedinUrl || !isCompanyOrSchoolPage(linkedinUrl)) {
+            if(!options.page && browser) await browser.close();
+            return peopleDetails;
+        }
     }
 
     // scrap company data
@@ -78,6 +89,91 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
     return companyDetails;
 }
 
+async function getPeopleData(profileUrl) {
+    return new Promise((resolve, reject) => {
+        linkedin.people.url(profileUrl, linkedinApiFields, (err, user) => {
+            if(err) reject(err);
+            else resolve(user);
+        });
+    });
+}
+
+async function scrapPeopleProfile(page, url = null) {
+    if(url)
+        await page.goto(url);
+    await page.waitForSelector('section.pv-profile-section');
+    const toggleButton = await page.$('pv-top-card-section__summary-toggle-button');
+    if(toggleButton)
+        await toggleButton.click();
+    if(await page.$('span.pv-top-card-v2-section__company-name'))
+        await pup.scrollPage(page, '#experience-section', 0.5);
+    const peopleDetails = await page.evaluate(() => {
+        const name = $('h1.pv-top-card-section__name').text().trim().split(' ');
+        const experiences = $('#experience-section li').get().map((elt) => {
+            elt = $(elt);
+            return {
+                companyName: elt.find('span.pv-entity__secondary-title').text().trim(),
+                linkedinUrl: 'https://www.linkedin.com' + elt.find('a.ember-view').attr('href')
+            }
+        });
+        const relatedPeople = $('section.pv-browsemap-section li').get().map((elt) => {
+           elt = $(elt);
+           return {
+               name: elt.find('span.actor-name').text().trim(),
+               position: elt.find('p.browsemap-headline').text().trim(),
+               linkedinUrl: 'https://www.linkedin.com' + elt.find('a.pv-browsemap-section__member').attr('href')
+           }
+        });
+        return {
+            firstName: name[0],
+            lastName: name[1],
+            headline: $('h2.pv-top-card-section__headline').text().trim(),
+            location: $('h3.pv-top-card-section__location').text().trim(),
+            summary: $('p.pv-top-card-section__summary-text').text().trim(),
+            currentCompany: experiences.length ? experiences[0] : null,
+            school: $('a.pv-top-card-v2-section__link-education span').text().trim() || null,
+            connectionsNumber: parseInt($('span.pv-top-card-v2-section__connections').text().match(/[0-9]+/)[0]),
+            positions: experiences,
+            relatedPeople: relatedPeople
+        };
+    });
+    peopleDetails['linkedinUrl'] = page.url();
+    return peopleDetails;
+}
+
+async function scrapCompanyPage(page, url = null) {
+    if(url)
+        await page.goto(url);
+    await page.waitFor('#org-about-company-module__show-details-btn');
+    await page.click('#org-about-company-module__show-details-btn');
+    await page.waitForSelector('div.org-about-company-module__about-us-extra');
+    const companyDetails = await page.evaluate(() => {
+        const foundedYear = $('p.org-about-company-module__founded').text().trim();
+        const companyDetails = {};
+        companyDetails['name'] = $('h1.org-top-card-module__name').text().trim();
+        companyDetails['industry'] = $('span.company-industries').text().trim();
+        companyDetails['description'] = $('p.org-about-us-organization-description__text').text().trim();
+        companyDetails['website'] = $('a.org-about-us-company-module__website').text().trim();
+        companyDetails['headquarters'] = $('p.org-about-company-module__headquarters').text().trim();
+        companyDetails['foundedYear'] = foundedYear? parseInt(foundedYear) : null;
+        companyDetails['companyType'] = $('p.org-about-company-module__company-type').text().trim();
+        companyDetails['companySize'] = parseInt($('p.org-about-company-module__company-staff-count-range').text().trim());
+        companyDetails['specialties'] = $('p.org-about-company-module__specialities').text().trim();
+        companyDetails['followers'] = parseInt($('span.org-top-card-module__followers-count').text().replace('followers', '').replace(',', '').trim());
+        companyDetails['membersOnLinkedin'] = parseInt($('a.snackbar-description-see-all-link').text().replace('See all', '').replace('employees on LinkedIn', '').replace(',', '').trim());
+        return companyDetails;
+    });
+    companyDetails['linkedinUrl'] = page.url();
+    return companyDetails;
+}
+
+function isCompanyOrSchoolPage(linkedinUrl) {
+    return linkedinUrl.indexOf('https://www.linkedin.com/company/') != -1 || linkedinUrl.indexOf('https://www.linkedin.com/school/') != -1;
+}
+
+
+
+// NOT USED ANYMORE
 async function processEntries(page, entries, csvFile, interval) {
     let companyLink;
     let companyDetails;
@@ -177,85 +273,6 @@ async function retrieveEmail(firstName, lastName, domainName) {
     }
 }
 
-async function getPeopleData(profileUrl) {
-    return new Promise((resolve, reject) => {
-        linkedin.people.url(profileUrl, linkedinApiFields, (err, user) => {
-            if(err) reject(err);
-            else resolve(user);
-        });
-    });
-}
-
-async function scrapPeopleProfile(page, url = null) {
-    if(url)
-        await page.goto(url);
-    await page.waitForSelector('section.pv-profile-section');
-    const toggleButton = await page.$('pv-top-card-section__summary-toggle-button');
-    if(toggleButton)
-        await toggleButton.click();
-    await pup.scrollPage(page, '#experience-section', 0.5);
-    const peopleDetails = await page.evaluate(() => {
-        const name = $('h1.pv-top-card-section__name').text().trim().split(' ');
-        const experiences = $('#experience-section li').get().map((elt) => {
-            elt = $(elt);
-            return {
-                companyName: elt.find('span.pv-entity__secondary-title').text().trim(),
-                linkedinUrl: 'https://www.linkedin.com' + elt.find('a.ember-view').attr('href')
-            }
-        });
-        const relatedPeople = $('section.pv-browsemap-section li').get().map((elt) => {
-           elt = $(elt);
-           return {
-               name: elt.find('span.actor-name').text().trim(),
-               position: elt.find('p.browsemap-headline').text().trim(),
-               linkedinUrl: 'https://www.linkedin.com' + elt.find('a.pv-browsemap-section__member').attr('href')
-           }
-        });
-        return {
-            firstName: name[0],
-            lastName: name[1],
-            headline: $('h2.pv-top-card-section__headline').text().trim(),
-            location: $('h3.pv-top-card-section__location').text().trim(),
-            summary: $('p.pv-top-card-section__summary-text').text().trim(),
-            currentCompany: $('a.pv-top-card-v2-section__link-experience span').text().trim(),
-            school: $('a.pv-top-card-v2-section__link-education span').text().trim(),
-            connectionsNumber: $('span.pv-top-card-v2-section__connections').text().match(/[0-9]+/)[0],
-            positions: experiences,
-            relatedPeople: relatedPeople
-        };
-    });
-    peopleDetails['linkedinUrl'] = page.url();
-    return peopleDetails;
-}
-
-async function scrapCompanyPage(page, url = null) {
-    if(url)
-        await page.goto(url);
-    await page.waitFor('#org-about-company-module__show-details-btn');
-    await page.click('#org-about-company-module__show-details-btn');
-    await page.waitForSelector('div.org-about-company-module__about-us-extra');
-    const companyDetails = await page.evaluate(() => {
-        const companyDetails = {};
-        companyDetails['name'] = $('h1.org-top-card-module__name').text().trim();
-        companyDetails['industry'] = $('span.company-industries').text().trim();
-        companyDetails['description'] = $('p.org-about-us-organization-description__text').text().trim();
-        companyDetails['website'] = $('a.org-about-us-company-module__website').text().trim();
-        companyDetails['headquarters'] = $('p.org-about-company-module__headquarters').text().trim();
-        companyDetails['foundedYear'] = $('p.org-about-company-module__founded').text().trim();
-        companyDetails['companyType'] = $('p.org-about-company-module__company-type').text().trim();
-        companyDetails['companySize'] = $('p.org-about-company-module__company-staff-count-range').text().trim();
-        companyDetails['specialties'] = $('p.org-about-company-module__specialities').text().trim();
-        companyDetails['followers'] = $('span.org-top-card-module__followers-count').text().replace('followers', '').trim();
-        companyDetails['membersOnLinkedin'] = $('a.snackbar-description-see-all-link').text().replace('See all', '').replace('employees on LinkedIn', '').replace(',', '').trim();
-        return companyDetails;
-    });
-    companyDetails['linkedinUrl'] = page.url();
-    return companyDetails;
-}
-
-
-
-// NOT USED ANYMORE
 async function manualLogIn() {
     const browser = await pup.runBrowser();
     const page = await pup.createPage(browser, config.cookiesFile);
