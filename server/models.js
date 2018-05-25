@@ -28,7 +28,7 @@ const companySchema = new mongoose.Schema({
     },
     description: {
         type: String,
-        required: true
+        required: false
     },
     website: {
         type: String,
@@ -44,11 +44,11 @@ const companySchema = new mongoose.Schema({
     },
     companyType: {
         type: String,
-        required: true
+        required: false
     },
     companySize: {
         type: Number,
-        required: true
+        required: false
     },
     specialties: {
         type: String,
@@ -62,6 +62,13 @@ const companySchema = new mongoose.Schema({
         type: Number,
         required: false
     }
+});
+companySchema.pre('validate', function(next) {
+    const docKeys = Object.keys(this.toObject()); // new Object(this) is not working
+    for(let schemaKey in companySchema.obj)
+        if(!docKeys.includes(schemaKey))
+            return next(new Error('"' + schemaKey + '" key is required.'));
+    next();
 });
 const Company = mongoose.model('Company', companySchema);
 
