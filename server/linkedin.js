@@ -148,17 +148,16 @@ async function scrapCompanyPage(page, url = null) {
     await page.click('#org-about-company-module__show-details-btn');
     await page.waitForSelector('div.org-about-company-module__about-us-extra');
     const companyDetails = await page.evaluate(() => {
-        const foundedYear = $('p.org-about-company-module__founded').text().trim();
         const companyDetails = {};
         companyDetails['name'] = $('h1.org-top-card-module__name').text().trim();
         companyDetails['industry'] = $('span.company-industries').text().trim();
         companyDetails['description'] = $('p.org-about-us-organization-description__text').text().trim();
         companyDetails['website'] = $('a.org-about-us-company-module__website').text().trim();
-        companyDetails['headquarters'] = $('p.org-about-company-module__headquarters').text().trim();
-        companyDetails['foundedYear'] = foundedYear? parseInt(foundedYear) : null;
+        companyDetails['headquarters'] = $('p.org-about-company-module__headquarters').text().trim() || null;
+        companyDetails['foundedYear'] = parseInt($('p.org-about-company-module__founded').text().trim());
         companyDetails['companyType'] = $('p.org-about-company-module__company-type').text().trim();
         companyDetails['companySize'] = parseInt($('p.org-about-company-module__company-staff-count-range').text().trim());
-        companyDetails['specialties'] = $('p.org-about-company-module__specialities').text().trim();
+        companyDetails['specialties'] = $('p.org-about-company-module__specialities').text().trim() || null;
         companyDetails['followers'] = parseInt($('span.org-top-card-module__followers-count').text().replace('followers', '').replace(',', '').trim());
         companyDetails['membersOnLinkedin'] = parseInt($('a.snackbar-description-see-all-link').text().replace('See all', '').replace('employees on LinkedIn', '').replace(',', '').trim());
         return companyDetails;

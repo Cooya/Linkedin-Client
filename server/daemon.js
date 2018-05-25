@@ -50,7 +50,7 @@ const PeopleToProcess = models.PeopleToProcess;
         await markPeopleToProcessAsProcessed(peopleToProcess);
         peopleToProcess = await findNextOnePeopleToProcess();
 
-        timeToWait = getRandomInt(60000, 120000);
+        timeToWait = getRandomInt(120000, 180000);
         console.log('Sleeping for ' + timeToWait + 'ms...');
         sleep.msleep(timeToWait);
     }

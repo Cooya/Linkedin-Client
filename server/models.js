@@ -36,11 +36,11 @@ const companySchema = new mongoose.Schema({
     },
     headquarters: {
         type: String,
-        required: true
+        required: false
     },
     foundedYear: {
         type: Number,
-        required: true
+        required: false
     },
     companyType: {
         type: String,
@@ -52,7 +52,7 @@ const companySchema = new mongoose.Schema({
     },
     specialties: {
         type: String,
-        required: true
+        required: false
     },
     followers: {
         type: Number,
@@ -60,7 +60,7 @@ const companySchema = new mongoose.Schema({
     },
     membersOnLinkedin: {
         type: Number,
-        required: true
+        required: false
     }
 });
 const Company = mongoose.model('Company', companySchema);

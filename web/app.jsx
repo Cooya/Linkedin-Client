@@ -63,9 +63,12 @@ class LinkedinForm extends React.Component {
     }
 
     render() {
-        const loading = this.state.loading ? <div className="spinner">
-            <div className="double-bounce1"/>
-            <div className="double-bounce2"/>
+        const loading = this.state.loading ? <div>
+            <p style={{textAlign: 'center', marginTop: '50px'}}>Retrieving data... It will take a few seconds.</p>
+            <div className="spinner" style={{margin: '10px auto'}}>
+                <div className="double-bounce1"/>
+                <div className="double-bounce2"/>
+            </div>
         </div> : null;
 
         return <div>
