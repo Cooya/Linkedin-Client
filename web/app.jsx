@@ -90,9 +90,15 @@ class LinkedinForm extends React.Component {
                         Submit a company page or people profile URL and data will be scrapped and displayed. This a demonstration tool, you got 10 shots.
                     </p>
                     <p>
-                        This tool is using either the Linkedin API for people profiles or a headless browser for company pages.
+                        This tool is using either the Linkedin API to get public data or a web scraper to collect information from web content.
                         If you submit a people profile URL, the tool will also try to retrieve information about the person's company if filled out.
-                        Please also note that the person's mail address can be guessed in some cases, through a third-party API but it is not available in this demonstration.
+                        So it is able to :
+                        <ul>
+                            <li>get people data through the Linkedin API</li>
+                            <li>scrap people data from private account (not permitted by the Linkedin API)</li>
+                            <li>scrap company data (not permitted by the Linkedin API)</li>
+                            <li>guess people's mail address thanks to a third-party API (not available in this demonstration)</li>
+                        </ul>
                     </p>
                     <p>
                         If you are interested by retrieving data from Linkedin, to complete your leads file for instance, feel free to <a href="http://cooya.fr">contact me</a>.
