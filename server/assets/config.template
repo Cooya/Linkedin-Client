@@ -1,0 +1,17 @@
+const path = require('path');
+
+module.exports = {
+    'linkedinApiKey': '',
+    'linkedinApiSecret': '',
+    'linkedinApiToken': '',
+    'skrappApiKey': '',
+    'sentryEndpoint': '',
+    'cookiesFile': path.resolve(__dirname, 'cookies.json'),
+    'screenshotFile': path.resolve(__dirname, 'screenshot.png'),
+    'csvFile': path.resolve(__dirname, 'accounts.csv'),
+    'rootWebFolder': path.resolve(__dirname, '..', '..', 'web') + '/',
+    'webAssetsFolder': path.resolve(__dirname, '..', '..', 'web/assets') + '/',
+    'scrapingInterval': 40000,
+    'serverPort': 8080,
+    'adminToken': ''
+};
