@@ -53,14 +53,10 @@ async function createPage(browser, cookiesFile) {
 	return page;
 }
 
-async function goTo(page, url, timeout) {
+async function goTo(page, url, options = {}) {
 	console.log('Going to %s...', url);
 
-	const options = {
-		waitUntil: 'networkidle2'
-	};
-	if (timeout)
-		options['timeout'] = timeout;
+	options.waitUntil = 'networkidle2';
 
 	let again = true;
 	while (again) {
@@ -76,8 +72,8 @@ async function goTo(page, url, timeout) {
 		}
 	}
 
-	if (page.url() != url)
-		throw Error('The current page is not the destination page.');
+	if (!options.ignoreDestination && page.url() != url)
+		throw Error('The current page is not the destination page, "' + page.url() + '" != "' + url + '".');
 }
 
 async function scrollPage(page, selector, xPosition = 1) {

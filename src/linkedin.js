@@ -47,7 +47,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
     if(!isCompanyOrSchoolPage(linkedinUrl)) {
         if(options.forcePeopleScraping) { // force people profile scraping instead of using the API
             if(!page) {
-                browser = await pup.runBrowser();
+                browser = await pup.runBrowser({headless: config.headless});
                 page = await pup.createPage(browser, config.cookiesFile);
             }
             peopleDetails = await scrapPeopleProfile(page, linkedinUrl);
@@ -62,7 +62,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
             peopleDetails['isPrivateProfile'] = peopleDetails['id'] == 'private';
             if(peopleDetails['isPrivateProfile']) {
                 if(!page) {
-                    browser = await pup.runBrowser();
+                    browser = await pup.runBrowser({headless: config.headless});
                     page = await pup.createPage(browser, config.cookiesFile);
                 }
                 peopleDetails = await scrapPeopleProfile(page, linkedinUrl);
@@ -91,7 +91,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 
     // scrap company data
     if(!page) {
-        browser = await pup.runBrowser();
+        browser = await pup.runBrowser({headless: config.headless});
         page = await pup.createPage(browser, config.cookiesFile);
     }
     const companyDetails = await scrapCompanyPage(page, linkedinUrl);
@@ -114,8 +114,10 @@ async function getPeopleData(profileUrl) {
 }
 
 async function scrapPeopleProfile(page, url = null) {
-    if(url)
-        await page.goto(url);
+    if(url) {
+        await pup.goTo(page, url, {ignoreDestination: true});
+        await logIn(page, config.linkedinEmail, config.linkedinPassword, {redirectionUrl: url});
+    }
     await page.waitForSelector('section.pv-profile-section');
     const toggleButton = await page.$('pv-top-card-section__summary-toggle-button');
     if(toggleButton)
@@ -157,8 +159,10 @@ async function scrapPeopleProfile(page, url = null) {
 }
 
 async function scrapCompanyPage(page, url = null) {
-    if(url)
-        await page.goto(url);
+    if(url) {
+        await pup.goTo(page, url, {ignoreDestination: true});
+        await logIn(page, config.linkedinEmail, config.linkedinPassword, {redirectionUrl: url});
+    }
     await page.waitFor('#org-about-company-module__show-details-btn');
     await page.click('#org-about-company-module__show-details-btn');
     await page.waitForSelector('div.org-about-company-module__about-us-extra');
@@ -185,8 +189,6 @@ function isCompanyOrSchoolPage(linkedinUrl) {
     return linkedinUrl.indexOf('https://www.linkedin.com/company/') != -1 || linkedinUrl.indexOf('https://www.linkedin.com/school/') != -1;
 }
 
-
-
 // NOT USED ANYMORE
 async function processEntries(page, entries, csvFile, interval) {
     let companyLink;
@@ -202,7 +204,7 @@ async function processEntries(page, entries, csvFile, interval) {
             continue; // skip the already processed entries
         }
 
-        await pup.goTo(page, entry[3], 30000);
+        await pup.goTo(page, entry[3]);
         await page.waitFor(2000);
         currentPageUrl = page.url();
         if(currentPageUrl.indexOf('https://www.linkedin.com/in/unavailable/') != -1) {
@@ -293,7 +295,7 @@ async function getCompaniesData() {
     console.log(entries.length + ' entries to process.');
 
     // process entries
-    const browser = await pup.runBrowser();
+    const browser = await pup.runBrowser({headless: config.headless});
     const page = await pup.createPage(browser, config.cookiesFile);
     await processEntries(page, entries, config.csvFile, config.scrapingInterval);
     await browser.close();
@@ -339,8 +341,6 @@ async function getEmails() {
     console.log('Process done.');
 }
 
-
-
 // NOT WORKING
 async function getCompanyData(companyId) {
     return new Promise((resolve, reject) => {
@@ -351,13 +351,36 @@ async function getCompanyData(companyId) {
     });
 }
 
-async function logIn(page, login, password) {
-    console.log('Logging in...');
-    await page.evaluate((login, password) => {
-        document.querySelector('#login-email').value = login;
-        document.querySelector('#login-password').value = password;
-        document.querySelector('form.login-form').submit();
-        //document.querySelector('#login-submit').click();
-    }, login, password);
-    console.log('Logged in.');
+async function logIn(page, login, password, options = {}) {
+    let loginButton = await page.$('p.login > a');
+    if(loginButton) {
+        console.log('Logging in...');
+        await loginButton.click();
+        await page.waitFor('#login-email');
+        await page.waitFor(2000);
+        await page.type('#login-email', login);
+        await page.type('#login-password', password);
+        await page.click('#login-submit');
+        await page.waitForNavigation();
+        await pup.saveCookies(page, config.cookiesFile);
+        console.log('Logged in.');
+    }
+    else {
+        loginButton = await page.$('a[title="Sign in"]');
+        if(loginButton) {
+            console.log('Logging in...');
+            await loginButton.click();
+            await page.waitForNavigation();
+            await page.waitFor(2000);
+            await page.type('#username', login);
+            await page.type('#password', password);
+            await page.click('button[aria-label="Sign in"]');
+            await page.waitForNavigation();
+            await pup.saveCookies(page, config.cookiesFile);
+            console.log('Logged in.');
+        }
+    }
+    
+    if(options.redirectionUrl && await page.url() != options.redirectionUrl)
+        await pup.goTo(page, options.redirectionUrl, {ignoreDestination: true});
 }
