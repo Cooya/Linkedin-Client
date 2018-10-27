@@ -1,7 +1,7 @@
 const sleep = require('sleep');
 const mongoose = require('mongoose');
 
-const config = require('./assets/config');
+const config = require('../config');
 const linkedin = require('./linkedin');
 const models = require('./models');
 const pup = require('./pup_utils');

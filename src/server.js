@@ -2,12 +2,15 @@ const express = require('express');
 const linkedin = require('./linkedin');
 const Raven = require('raven');
 
-const config = require('./assets/config.js');
+const config = require('../config');
+
+// configuring Raven
 Raven.config(config.sentryEndpoint, {
     shouldSendCallback: (data) => {
         return process.env.NODE_ENV == 'production'
     }
 }).install();
+
 const app = express();
 const ipAddresses = {};
 
@@ -30,7 +33,7 @@ app.get('/request', saveIpAddress, async (req, res, next) => {
 
     try {
         const details = await linkedin.getCompanyOrPeopleDetails(req.query.linkedinUrl);
-        //console.log(details);
+        //console.debug(details);
         if(details['error'])
             res.json({error: details['error'], result: null});
         else
@@ -44,12 +47,19 @@ app.get('/request', saveIpAddress, async (req, res, next) => {
 });
 
 if(process.env.NODE_ENV == 'test')
-    module.exports = app;
+    module.exports = {
+        app: app,
+        linkedin: linkedin
+    };
 else {
-    app.use('/assets', express.static(config.webAssetsFolder));
+    (async () => {
+        await linkedin.init();
 
-    console.log('Server started on port ' + config.serverPort + ', waiting for requests...');
-    app.listen(config.serverPort);
+        app.use('/assets', express.static(config.webAssetsFolder));
+
+        console.log('Server started on port ' + config.serverPort + ', waiting for requests...');
+        app.listen(config.serverPort);
+    })();
 }
 
 function saveIpAddress(req, res, next) {

@@ -1,5 +1,7 @@
-node_modules/
-server/assets/config.js
-server/assets/cookies.json
-web/assets/bundle.js
 .idea/
+node_modules/
+web/assets/bundle.js
+assets/cookies.json
+assets/access_token.txt
+config.js
+error.png

@@ -1,10 +1,16 @@
-const app = require('../server');
+const server = require('../server');
 const chai = require('chai');
 const request = require('supertest');
 
 const expect = chai.expect;
 
 describe('Linkedin scraper form tests', () => {
+    let app = server.app;
+
+    before(async () => {
+        await server.linkedin.init();
+    });
+
     it('Invalid URL', (done) => {
         const url = 'toto';
         request(app).get('/request?linkedinUrl=' + url).end((err, res) => {
@@ -34,12 +40,13 @@ describe('Linkedin scraper form tests', () => {
     });
 
     it('People profile with company', (done) => {
-        const url = 'https://www.linkedin.com/in/nicomarcy/';
+        const url = 'https://www.linkedin.com/in/alix-vandame/';
         request(app).get('/request?linkedinUrl=' + url).end((err, res) => {
             expect(res.statusCode).to.equal(200);
             expect(res.body.error).to.equal(null);
-            expect(res.body.result['firstName']).to.equal('Nicolas');
-            expect(res.body.result['company']['name']).to.equal('Yaal');
+            expect(res.body.result['firstName']).to.equal('Alix');
+            expect(res.body.result['company']['name']).to.equal('talent.io');
+            expect(res.body.result['company']['foundedYear']).to.equal(2015);
             done();
         });
     });
@@ -51,7 +58,6 @@ describe('Linkedin scraper form tests', () => {
             expect(res.body.error).to.equal(null);
             expect(res.body.result['firstName']).to.equal('Benoit');
             expect(res.body.result['positions'][0]['companyName']).to.equal('artisandeveloppeur.fr');
-
             done();
         });
     });

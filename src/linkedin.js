@@ -2,14 +2,14 @@ const fs = require('fs');
 const url = require('url');
 const util = require('util');
 
-const config = require('./assets/config');
-const linkedinApiFields = require('./assets/linkedin_api_fields.json');
-
 const csv = require('csv');
-const linkedin = require('node-linkedin')(config.linkedinApiKey, config.linkedinApiSecret).init(config.linkedinApiToken);
-const pup = require('./pup_utils');
+const nodeLinkedin = require('node-linkedin');
 const request = require('request');
 const sleep = require('sleep');
+
+const config = require('../config');
+const linkedinApiFields = require('../assets/linkedin_api_fields.json');
+const pup = require('./pup_utils');
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
@@ -17,9 +17,23 @@ const get = util.promisify(request.get);
 const parseCSV = util.promisify(csv.parse);
 const stringifyCSV = util.promisify(csv.stringify);
 
+let linkedin;
+
 module.exports = {
+    init: init,
     getCompanyOrPeopleDetails: getCompanyOrPeopleDetails
 };
+
+async function init() {
+    try {
+        console.log('Initializing the Linkedin client...');
+        const accessToken = await readFile(config.accessTokenFile);
+        linkedin = nodeLinkedin(config.linkedinApiKey, config.linkedinApiSecret).init(accessToken.toString());
+    }
+    catch(e) {
+        throw new Error('Initialization has failed. Maybe the access token file is absent...');
+    }
+}
 
 // options = page, forcePeopleScraping, skipCompanyScraping
 async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
