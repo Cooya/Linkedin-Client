@@ -89,12 +89,21 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
         }
     }
 
-    // scrap company data
     if(!page) {
         browser = await pup.runBrowser({headless: config.headless});
         page = await pup.createPage(browser, config.cookiesFile);
     }
-    const companyDetails = await scrapCompanyPage(page, linkedinUrl);
+
+    // scrap company data
+    let companyDetails;
+    try {
+        companyDetails = await scrapCompanyPage(page, linkedinUrl);
+    }
+    catch(e) {
+        page.screenshot({path: 'error.png'});
+        throw e;
+    }
+
     if(!options.page) await browser.close();
 
     if(peopleDetails) {
