@@ -99,7 +99,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
     try {
         companyDetails = await scrapCompanyPage(page, linkedinUrl);
     }
-    catch(e) {
+    catch(e) { // I was trying to understand why I cannot log in to Linkedin from my VPS server
         console.error(page.url());
         await page.screenshot({path: 'error.png'});
         throw e;

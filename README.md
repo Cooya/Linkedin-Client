@@ -1,3 +1,6 @@
+# THE LOG IN FROM THE VPS SERVER IS NOT WORKING BECAUSE OF THE PIN SECURITY OF LINKEDIN
+# MY LOCAL COOKIES FILE MUST BE COPIED TO THE VPS SERVER TO SKIP THE AUTHENTIFICATION PROCESS
+
 ## Get the access token
 
 * ask for the user authorization by requesting https://www.linkedin.com/oauth/v2/authorization with GET parameters :
