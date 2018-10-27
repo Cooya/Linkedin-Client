@@ -362,33 +362,23 @@ async function getCompanyData(companyId) {
 }
 
 async function logIn(page, login, password, options = {}) {
-    let loginButton = await page.$('p.login > a');
+    let loginButton = await page.$('p.login > a, a[title="Sign in"]');
     if(loginButton) {
         console.log('Logging in...');
         await loginButton.click();
-        await page.waitFor('#login-email');
+        try {
+            await page.waitFor('#login-email', {timeout: 2000});
+        }
+        catch(e) {
+            await page.waitForNavigation();
+        }
         await page.waitFor(2000);
-        await page.type('#login-email', login);
-        await page.type('#login-password', password);
-        await page.click('#login-submit');
+        await page.type('#login-email, #username', login);
+        await page.type('#login-password, #password', password);
+        await page.click('#login-submit, button[aria-label="Sign in"]');
         await page.waitForNavigation();
         await pup.saveCookies(page, config.cookiesFile);
         console.log('Logged in.');
-    }
-    else {
-        loginButton = await page.$('a[title="Sign in"]');
-        if(loginButton) {
-            console.log('Logging in...');
-            await loginButton.click();
-            await page.waitForNavigation();
-            await page.waitFor(2000);
-            await page.type('#username', login);
-            await page.type('#password', password);
-            await page.click('button[aria-label="Sign in"]');
-            await page.waitForNavigation();
-            await pup.saveCookies(page, config.cookiesFile);
-            console.log('Logged in.');
-        }
     }
     
     if(options.redirectionUrl && await page.url() != options.redirectionUrl)
