@@ -100,6 +100,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
         companyDetails = await scrapCompanyPage(page, linkedinUrl);
     }
     catch(e) {
+        console.error(page.url());
         await page.screenshot({path: 'error.png'});
         throw e;
     }
