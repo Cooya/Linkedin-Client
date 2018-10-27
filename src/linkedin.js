@@ -31,6 +31,7 @@ async function init() {
         linkedin = nodeLinkedin(config.linkedinApiKey, config.linkedinApiSecret).init(accessToken.toString());
     }
     catch(e) {
+        console.error(e);
         throw new Error('Initialization has failed. Maybe the access token file is absent...');
     }
 }

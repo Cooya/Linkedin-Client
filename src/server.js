@@ -15,10 +15,12 @@ const app = express();
 const ipAddresses = {};
 
 process.on('uncaughtException', (e) => {
-
+    console.error('UNCAUGHT EXCEPTION');
+    console.error(e);
 });
 process.on('unhandledRejection', (e) => {
-
+    console.error('UNHANDLED REJECTION');
+    console.error(e);
 });
 
 app.get('/', (req, res, next) => {
@@ -53,7 +55,13 @@ if(process.env.NODE_ENV == 'test')
     };
 else {
     (async () => {
-        await linkedin.init();
+        try {
+            await linkedin.init();
+        }
+        catch(e) {
+            console.error(e);
+            process.exit(1);
+        }
 
         app.use('/assets', express.static(config.webAssetsFolder));
 

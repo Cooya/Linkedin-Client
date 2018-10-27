@@ -5,3 +5,4 @@ assets/cookies.json
 assets/access_token.txt
 config.js
 error.png
+npm-debug.log
