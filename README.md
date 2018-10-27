@@ -28,5 +28,5 @@
 
 ## Architecture
 
-The daemon is used to take a list of people or company to process in input and save the returned data into the database;
+The daemon is used to take a list of people or company to process in input and save the returned data into the database.  
 The server is used to display a simple web interface allowing to submit Linkedin people profile or company page to scrap.
