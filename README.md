@@ -1,6 +1,24 @@
 # THE LOG IN FROM THE VPS SERVER IS NOT WORKING BECAUSE OF THE PIN SECURITY OF LINKEDIN
 # MY LOCAL COOKIES FILE MUST BE COPIED TO THE VPS SERVER TO SKIP THE AUTHENTIFICATION PROCESS
 
+## Installation
+
+```bash
+git clone https://github.com/Cooya/Linkedin.git
+cd Linkedin
+npm install
+sudo npm install -g forever
+npm run build
+touch server/assets/config.js
+touch server/assets/cookies.json
+npm run server
+```
+
+It may need Linux dependencies to run Chromium :
+```
+sudo apt install gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+```
+
 ## Get the access token
 
 * ask for the user authorization by requesting https://www.linkedin.com/oauth/v2/authorization with GET parameters :
