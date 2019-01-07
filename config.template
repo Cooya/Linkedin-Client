@@ -14,5 +14,5 @@ module.exports = {
     'webAssetsFolder': path.resolve(__dirname, 'web/assets') + '/', // no need to touch that
     'serverPort': 8080, // your server port
     'adminToken': '', // just a string allowing you to skip the maximum number of shots
-    'headless': true // hise the graphical web browser or not (leave it to true on a remote server)
+    'headless': true // hide the graphical web browser or not (leave it to true on a remote server)
 };
