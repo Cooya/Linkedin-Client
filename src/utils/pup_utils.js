@@ -18,18 +18,18 @@ const browserOptions = {
 };
 
 module.exports = {
-	runBrowser: runBrowser,
-	createPage: createPage,
-	goTo: goTo,
-	scrollPage: scrollPage,
-	infiniteScroll: infiniteScroll,
-	click: click,
-	reloadPage: reloadPage,
-	loadCookies: loadCookies,
-	saveCookies: saveCookies,
-	deleteCookiesFile: deleteCookiesFile,
-	value: value,
-	attribute: attribute
+	runBrowser,
+	createPage,
+	goTo,
+	scrollPage,
+	infiniteScroll,
+	click,
+	reloadPage,
+	loadCookies,
+	saveCookies,
+	deleteCookiesFile,
+	value,
+	attribute
 };
 
 async function runBrowser(options) {
@@ -40,11 +40,11 @@ async function createPage(browser, cookiesFile) {
 	console.debug('Creating page...');
 	const page = await browser.newPage();
 	await page.setUserAgent('Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0');
-	await page.setViewport({ width: 1600, height: 900 });
-	await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8' });
+	await page.setViewport({width: 1600, height: 900});
+	await page.setExtraHTTPHeaders({'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'});
 	if (cookiesFile) await loadCookies(page, cookiesFile);
-	process.on('unhandledRejection', error => {
-		page.screenshot({ path: 'error.png' }).then(() => {
+	process.on('unhandledRejection', (error) => {
+		page.screenshot({path: 'error.png'}).then(() => {
 			console.error(error);
 			process.exit(1);
 		});
@@ -56,24 +56,22 @@ async function createPage(browser, cookiesFile) {
 async function goTo(page, url, options = {}) {
 	console.log('Going to %s...', url);
 
-	options.waitUntil = 'networkidle2';
+	options.waitUntil = options.waitUntil || 'networkidle2';
+	options.ignoreDestination = options.ignoreDestination !== undefined || false;
+	options.timeout = options.timeout !== undefined || 60000;
 
 	let again = true;
 	while (again) {
 		try {
 			await page.goto(url, options);
 			again = false;
-		}
-		catch (e) {
-			if (e.message.indexOf('Navigation Timeout Exceeded') != -1)
-				console.log('goTo() timeout !');
-			else
-				throw e;
+		} catch (e) {
+			if (e.message.indexOf('Navigation Timeout Exceeded') != -1) console.log('goTo() timeout !');
+			else throw e;
 		}
 	}
 
-	if (!options.ignoreDestination && page.url() != url)
-		throw Error('The current page is not the destination page, "' + page.url() + '" != "' + url + '".');
+	if (!options.ignoreDestination && page.url() != url) throw Error('The current page is not the destination page.');
 }
 
 async function scrollPage(page, selector, xPosition = 1) {
@@ -81,29 +79,31 @@ async function scrollPage(page, selector, xPosition = 1) {
 	while (true) {
 		await page.evaluate('window.scrollTo(0, document.body.scrollHeight * ' + xPosition + ')');
 		try {
-			await page.waitForSelector(selector, { timeout: 1000 });
+			await page.waitForSelector(selector, {timeout: 1000});
 			return;
-		}
-		catch (e) {
+		} catch (e) {
 			xPosition = xPosition >= 1 ? 0 : xPosition + 0.1;
 			console.log('Scrolling again to ' + xPosition + '...');
 		}
 	}
 }
 
-async function infiniteScroll(page) {
+async function infiniteScroll(page, action) {
 	let oldScrollPos = 0;
 	let newScrollPos = 0;
-	while (true) {
+	let result = await action();
+	while (!result) {
+		console.debug('Scrolling the page...');
 		newScrollPos = await page.evaluate(() => {
 			window.scrollBy(0, document.body.scrollHeight);
 			return document.body.scrollHeight;
 		});
 		await sleep.sleep(1);
-		if (oldScrollPos == newScrollPos)
-			break;
+		if (oldScrollPos == newScrollPos) break;
 		oldScrollPos = newScrollPos;
+		result = await action();
 	}
+	return result;
 }
 
 async function click(page, element, timeout = 30) {
@@ -115,16 +115,13 @@ async function click(page, element, timeout = 30) {
 			await page.evaluate((el) => {
 				el.click();
 			}, element);
-			await page.waitForNavigation({ timeout: timeout });
+			await page.waitForNavigation({timeout: timeout});
 			again = false;
-		}
-		catch (e) {
+		} catch (e) {
 			if (e.message.indexOf('Navigation Timeout Exceeded') != -1) {
 				console.error('click() timeout !');
 				await reloadPage(page);
-			}
-			else
-				throw e;
+			} else throw e;
 		}
 	}
 }
@@ -134,19 +131,16 @@ async function reloadPage(page, timeout = 30, attempts = 5) {
 
 	for (let i = 0; i < attempts; ++i) {
 		try {
-			await page.reload({ timeout: timeout });
+			await page.reload({timeout: timeout});
 
 			// old version
 			//await page.evaluate('location.reload()');
 			//await page.waitForNavigation({timeout: timeout});
 
 			return;
-		}
-		catch (e) {
-			if (e.message.indexOf('Navigation Timeout Exceeded') != -1)
-				console.error('Page reloading timeout !');
-			else
-				throw e;
+		} catch (e) {
+			if (e.message.indexOf('Navigation Timeout Exceeded') != -1) console.error('Page reloading timeout !');
+			else throw e;
 		}
 	}
 
@@ -158,8 +152,7 @@ async function loadCookies(page, cookiesFile) {
 	let cookies;
 	try {
 		cookies = JSON.parse(await readFile(cookiesFile, 'utf-8'));
-	}
-	catch (e) {
+	} catch (e) {
 		await writeFile(cookiesFile, '[]');
 		console.log('Empty cookies file created.');
 		return;
@@ -177,26 +170,32 @@ async function saveCookies(page, cookiesFile) {
 
 async function deleteCookiesFile(cookiesFile) {
 	const fileExists = await fs.exists(cookiesFile);
-	if (!fileExists)
-		return console.log('Cookies file does not exist.');
+	if (!fileExists) return console.log('Cookies file does not exist.');
 	await fs.unlink(cookiesFile);
 	console.log('Cookies file deleted.');
 }
 
 function value(page, selector, value) {
-	return page.evaluate((selector, value) => {
-		var elt = document.querySelector(selector);
-		if (value !== undefined)
-			elt.value = value;
-		return elt.value;
-	}, selector, value);
+	return page.evaluate(
+		(selector, value) => {
+			var elt = document.querySelector(selector);
+			if (value !== undefined) elt.value = value;
+			return elt.value;
+		},
+		selector,
+		value
+	);
 }
 
 async function attribute(page, selector, attribute, value) {
-	return await page.evaluate((selector, attribute, value) => {
-		var elt = document.querySelector(selector);
-		if (value !== undefined)
-			elt[attribute] = value;
-		return elt[attribute];
-	}, selector, attribute, value);
+	return await page.evaluate(
+		(selector, attribute, value) => {
+			var elt = document.querySelector(selector);
+			if (value !== undefined) elt[attribute] = value;
+			return elt[attribute];
+		},
+		selector,
+		attribute,
+		value
+	);
 }
