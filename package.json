@@ -1,13 +1,12 @@
 {
 	"name": "linkedin-coya",
 	"version": "0.0.1",
-	"description": "linkedin api for cleany",
-	"main": "index.js",
+	"description": "Web interface for Linkedin API",
+	"main": "src/server.js",
 	"scripts": {
 		"test": "NODE_ENV=test mocha src/tests --timeout 30000",
 		"start": "NODE_ENV=development node src/server.js",
 		"server": "NODE_ENV=production forever start src/server.js",
-		"daemon": "NODE_ENV=development node src/daemon.js",
 		"build": "webpack --mode production",
 		"dev-build": "webpack --watch=true --mode development",
 		"manual-login": "node scripts/manual_login.js",
@@ -43,5 +42,9 @@
 		"request-promise": "^4.2.2",
 		"sleep": "^5.1.1",
 		"whatwg-fetch": "^2.0.4"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Cooya/Linkedin.git"
 	}
 }
