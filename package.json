@@ -4,7 +4,7 @@
 	"description": "Web interface for Linkedin API",
 	"main": "src/server.js",
 	"scripts": {
-		"test": "NODE_ENV=test mocha src/tests --timeout 30000",
+		"test": "NODE_ENV=test mocha src/tests --timeout 60000",
 		"start": "NODE_ENV=development node src/server.js",
 		"server": "NODE_ENV=production forever start src/server.js",
 		"build": "webpack --mode production",
