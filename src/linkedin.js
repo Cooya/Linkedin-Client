@@ -195,58 +195,43 @@ async function scrapCompanyPage(page, url = null) {
 		await pup.goTo(page, url, {ignoreDestination: true});
 		await logIn(page, config.linkedinEmail, config.linkedinPassword, {redirectionUrl: url});
 	}
-	await page.waitFor('#org-about-company-module__show-details-btn');
-	await page.click('#org-about-company-module__show-details-btn');
-	await page.waitForSelector('div.org-about-company-module__about-us-extra');
+	await page.waitForSelector('a[data-control-name="page_member_main_nav_about_tab"]');
+	await page.click('a[data-control-name="page_member_main_nav_about_tab"]');
+	await page.waitForSelector('div.org-grid__core-rail dl');
 	const companyDetails = await page.evaluate(() => {
 		const companyDetails = {};
-		companyDetails['name'] = $('h1.org-top-card-module__name')
-			.text()
-			.trim();
-		companyDetails['industry'] = $('span.company-industries')
+		const keys = $('dl > dt').get();
+		const values = $('dl > dd').get();
+		let value;
+		for (let i = 0; i < keys.length; ++i) {
+			key = keys[i].textContent.trim();
+			value = values[i].textContent.trim();
+			if (key == 'Website') companyDetails['website'] = value;
+			else if (key == 'Industry') companyDetails['industry'] = value;
+			else if (key == 'Company size') companyDetails['companySize'] = value;
+			else if (key == 'Headquarters') companyDetails['headquarters'] = value;
+			else if (key == 'Type') companyDetails['companyType'] = value;
+			else if (key == 'Founded') companyDetails['foundedYear'] = parseInt(value);
+			else if (key == 'Specialties') companyDetails['specialties'] = value;
+		}
+		companyDetails['name'] = $('h1.org-top-card-primary-content__title')
 			.text()
 			.trim();
 		companyDetails['description'] =
-			$('p.org-about-us-organization-description__text')
-				.text()
-				.trim() || null;
-		companyDetails['website'] = $('a.org-about-us-company-module__website')
-			.text()
-			.trim();
-		companyDetails['headquarters'] =
-			$('p.org-about-company-module__headquarters')
-				.text()
-				.trim() || null;
-		companyDetails['foundedYear'] = parseInt(
-			$('p.org-about-company-module__founded')
-				.text()
-				.trim()
-		);
-		companyDetails['companyType'] =
-			$('p.org-about-company-module__company-type')
-				.text()
-				.trim() || null;
-		companyDetails['companySize'] = parseInt(
-			$('p.org-about-company-module__company-staff-count-range')
-				.text()
-				.trim()
-		);
-		companyDetails['specialties'] =
-			$('p.org-about-company-module__specialities')
+			$('div.org-grid__core-rail > section > p')
 				.text()
 				.trim() || null;
 		companyDetails['followers'] = parseInt(
-			$('span.org-top-card-module__followers-count')
+			$('div.org-top-card-primary-content__follower-count')
 				.text()
 				.replace('followers', '')
 				.replace(',', '')
 				.trim()
 		);
 		companyDetails['membersOnLinkedin'] = parseInt(
-			$('a.snackbar-description-see-all-link')
+			$('a[data-control-name="topcard_see_all_employees"] > span')
 				.text()
-				.replace('See all', '')
-				.replace('employees on LinkedIn', '')
+				.match(/See all ([0-9,]+) employees on LinkedIn/)[1]
 				.replace(',', '')
 				.trim()
 		);

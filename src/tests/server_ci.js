@@ -73,14 +73,26 @@ describe('Linkedin scraper form tests', () => {
 	});
 
 	it('Company page', (done) => {
-		const url = 'https://www.linkedin.com/company/yaal/';
+		const url = 'https://www.linkedin.com/company/talent-io';
 		request(app)
 			.get('/request?linkedinUrl=' + url)
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
 				expect(res.body.error).to.equal(null);
-				expect(res.body.result['name']).to.equal('Yaal');
-				expect(res.body.result['headquarters']).to.equal('Bordeaux');
+				expect(res.body.result['name']).to.equal('talent.io');
+				expect(res.body.result['description'].length).to.be.not.equal(0);
+				expect(res.body.result['website']).to.equal('https://www.talent.io/');
+				expect(res.body.result['industry']).to.equal('Internet');
+				expect(res.body.result['companySize']).to.equal('51-200 employees');
+				expect(res.body.result['headquarters']).to.equal('Paris, Île-de-France');
+				expect(res.body.result['companyType']).to.equal('Partnership');
+				expect(res.body.result['foundedYear']).to.equal(2015);
+				expect(res.body.result['specialties']).to.equal(
+					'Startup, Recruiting, Tech Recruiting, and Software Engineers'
+				);
+
+				expect(Number.isInteger(res.body.result['followers'])).to.be.true;
+				expect(Number.isInteger(res.body.result['membersOnLinkedin'])).to.be.true;
 				done();
 			});
 	});
