@@ -196,8 +196,13 @@ async function scrapCompanyPage(page, url = null) {
 		await logIn(page, config.linkedinEmail, config.linkedinPassword, {redirectionUrl: url});
 	}
 	await page.waitForSelector('a[data-control-name="page_member_main_nav_about_tab"]');
-	await page.click('a[data-control-name="page_member_main_nav_about_tab"]');
-	await page.waitForSelector('div.org-grid__core-rail dl');
+
+	// if "About" section is not displayed
+	if (!(await page.$('a[data-control-name="page_member_main_nav_about_tab"].active'))) {
+		await page.click('a[data-control-name="page_member_main_nav_about_tab"]'); // we toggle it
+		await page.waitForSelector('.org-page-details__definition-text');
+	}
+
 	const companyDetails = await page.evaluate(() => {
 		const companyDetails = {};
 		const keys = $('dl > dt').get();
@@ -214,15 +219,15 @@ async function scrapCompanyPage(page, url = null) {
 			else if (key == 'Founded') companyDetails['foundedYear'] = parseInt(value);
 			else if (key == 'Specialties') companyDetails['specialties'] = value;
 		}
-		companyDetails['name'] = $('h1.org-top-card-primary-content__title')
+		companyDetails['name'] = $('h1.org-top-card-summary__title')
 			.text()
 			.trim();
 		companyDetails['description'] =
-			$('div.org-grid__core-rail > section > p')
+			$('div.org-grid__core-rail--no-margin-left > section > p')
 				.text()
 				.trim() || null;
 		companyDetails['followers'] = parseInt(
-			$('div.org-top-card-primary-content__follower-count')
+			$('div.org-top-card-summary__follower-count')
 				.text()
 				.replace('followers', '')
 				.replace(',', '')
@@ -237,7 +242,7 @@ async function scrapCompanyPage(page, url = null) {
 		);
 		return companyDetails;
 	});
-	companyDetails['linkedinUrl'] = page.url();
+	companyDetails['linkedinUrl'] = page.url().replace('/about/', '');
 	return companyDetails;
 }
 

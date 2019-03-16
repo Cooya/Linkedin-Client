@@ -79,6 +79,7 @@ describe('Linkedin scraper form tests', () => {
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
 				expect(res.body.error).to.equal(null);
+				expect(res.body.result['linkedinUrl']).to.equal(url);
 				expect(res.body.result['name']).to.equal('talent.io');
 				expect(res.body.result['description'].length).to.be.not.equal(0);
 				expect(res.body.result['website']).to.equal('https://www.talent.io/');
