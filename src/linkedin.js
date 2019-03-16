@@ -1,10 +1,10 @@
 const nodeLinkedin = require('node-linkedin');
+require('@coya/utils');
 
 const oauth = require('./oauth');
 const config = require('../config');
-require('./utils/date_utils');
 const linkedinApiFields = require('../assets/linkedin_api_fields.json');
-const pup = require('./utils/pup_utils');
+const pup = require('./pup_utils');
 
 let linkedin;
 let tokenExpirationDate;

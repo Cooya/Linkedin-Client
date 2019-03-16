@@ -4,7 +4,7 @@ const request = require('request-promise');
 const url = require('url');
 
 const config = require('../config');
-const pup = require('./utils/pup_utils');
+const pup = require('./pup_utils');
 
 const authorizationURL = 'https://www.linkedin.com/oauth/v2/authorization';
 const accessTokenURl = 'https://www.linkedin.com/oauth/v2/accessToken';

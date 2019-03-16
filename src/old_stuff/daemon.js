@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const config = require('../../config');
 const linkedin = require('../linkedin');
 const models = require('./models');
-const pup = require('../utils/pup_utils');
+const pup = require('../pup_utils');
 
 const startingPointUrl = 'https://www.linkedin.com/in/nicomarcy/';
 const People = models.People;
