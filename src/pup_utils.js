@@ -59,7 +59,7 @@ async function createPage(browser, cookiesFile) {
 async function goTo(page, url, options = {}) {
 	console.log('Going to %s...', url);
 
-	options.waitUntil = options.waitUntil || 'networkidle2';
+	options.waitUntil = options.waitUntil || 'domcontentloaded';
 	options.ignoreDestination = options.ignoreDestination !== undefined || false;
 	options.timeout = options.timeout !== undefined || 60000;
 

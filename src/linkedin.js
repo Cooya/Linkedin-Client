@@ -10,8 +10,8 @@ let linkedin;
 let tokenExpirationDate;
 
 module.exports = {
-	init: init,
-	getCompanyOrPeopleDetails: getCompanyOrPeopleDetails
+	init,
+	getCompanyOrPeopleDetails
 };
 
 async function init() {
