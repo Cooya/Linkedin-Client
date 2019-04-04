@@ -8,7 +8,7 @@ const config = require('../config');
 const pup = require('./pup_utils');
 
 const authorizationURL = 'https://www.linkedin.com/oauth/v2/authorization';
-const accessTokenURl = 'https://www.linkedin.com/oauth/v2/accessToken';
+const accessTokenURL = 'https://www.linkedin.com/oauth/v2/accessToken';
 
 async function getAccessToken() {
 	let params = qs.stringify({
@@ -21,36 +21,47 @@ async function getAccessToken() {
 	const browser = await pup.runBrowser({headless: config.headless});
 	const page = await pup.createPage(browser, config.cookiesFile);
 	await pup.goTo(page, authorizationURL + '?' + params, {ignoreDestination: true});
+	sleep.sleep(3);
 
 	// submit the form if there is a form
 	if (await page.$('#session_key-login')) {
-		if (!(await pup.value(page, '#session_key-login'))) await page.type('#session_key-login', config.linkedinEmail);
+		if (!(await pup.value(page, '#session_key-login'))) {
+			await page.type('#session_key-login', config.linkedinEmail);
+			sleep.sleep(3);
+		}
 		await page.type('#session_password-login', config.linkedinPassword);
+		sleep.sleep(3);
 		await page.click('#btn-primary');
 	} else if (await page.$('#username')) {
-		if (!(await pup.value(page, '#username'))) await page.type('#username', config.linkedinEmail);
+		if (!(await pup.value(page, '#username'))) {
+			await page.type('#username', config.linkedinEmail);
+			sleep.sleep(3);
+		}
 		await page.type('#password', config.linkedinPassword);
+		sleep.sleep(3);
 		await page.click('button[type="submit"]');
 	} else throw new Error('This login page is unknown.');
 	await page.waitForNavigation();
-
-	// if (await page.$('div.recaptcha-checkbox-checkmark')) {
-	// 	console.log('Google recaptcha asked.');
-	// 	await page.waitForNavigation();
-	// }
+	await pup.saveCookies(page, config.cookiesFile);
+	sleep.sleep(3);
 
 	// authorize the app if asked
 	if (await page.$('#oauth__auth-form__submit-btn')) {
 		await page.waitForNavigation();
+		sleep.sleep(3);
 		await page.click('#oauth__auth-form__submit-btn');
 	}
 
-	params = qs.parse(url.parse(page.url()).query);
-	sleep.sleep(60);
+	// check if the recapatcha page is displayed
+	const pageUrl = page.url();
+	if (/checkpoint\/challenge/.test(pageUrl)) throw new Error('Google recaptcha asked.');
+
+	// get the code allowing to retrieve the access token
+	params = qs.parse(url.parse(pageUrl).query);
 	assert(params['code']);
 	assert(params['state']);
 
-	let res = await request.post(accessTokenURl, {
+	let res = await request.post(accessTokenURL, {
 		form: {
 			code: params['code'],
 			redirect_uri: config.oauthCallback,
