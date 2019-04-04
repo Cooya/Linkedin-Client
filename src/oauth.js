@@ -1,6 +1,7 @@
 const assert = require('assert');
 const qs = require('querystring');
 const request = require('request-promise');
+const sleep = require('sleep');
 const url = require('url');
 
 const config = require('../config');
@@ -23,16 +24,20 @@ async function getAccessToken() {
 
 	// submit the form if there is a form
 	if (await page.$('#session_key-login')) {
-		await page.type('#session_key-login', config.linkedinEmail);
+		if (!(await pup.value(page, '#session_key-login'))) await page.type('#session_key-login', config.linkedinEmail);
 		await page.type('#session_password-login', config.linkedinPassword);
 		await page.click('#btn-primary');
-		await page.waitForNavigation();
 	} else if (await page.$('#username')) {
-		await page.type('#username', config.linkedinEmail);
+		if (!(await pup.value(page, '#username'))) await page.type('#username', config.linkedinEmail);
 		await page.type('#password', config.linkedinPassword);
 		await page.click('button[type="submit"]');
-		await page.waitForNavigation();
-	}
+	} else throw new Error('This login page is unknown.');
+	await page.waitForNavigation();
+
+	// if (await page.$('div.recaptcha-checkbox-checkmark')) {
+	// 	console.log('Google recaptcha asked.');
+	// 	await page.waitForNavigation();
+	// }
 
 	// authorize the app if asked
 	if (await page.$('#oauth__auth-form__submit-btn')) {
@@ -41,6 +46,7 @@ async function getAccessToken() {
 	}
 
 	params = qs.parse(url.parse(page.url()).query);
+	sleep.sleep(60);
 	assert(params['code']);
 	assert(params['state']);
 

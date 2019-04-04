@@ -6,7 +6,7 @@
   "scripts": {
     "test": "NODE_ENV=test mocha src/tests --timeout 60000",
     "start": "NODE_ENV=development node src/server.js",
-    "server": "NODE_ENV=production forever start src/server.js",
+    "server": "NODE_ENV=production forever --id linkedin start src/server.js",
     "build": "webpack --mode production",
     "dev-build": "webpack --watch=true --mode development",
     "manual-login": "node scripts/manual_login.js",
