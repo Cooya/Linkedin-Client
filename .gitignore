@@ -6,3 +6,4 @@ assets/token.json
 config.js
 error.png
 npm-debug.log
+deploy.sh
