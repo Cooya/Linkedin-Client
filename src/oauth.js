@@ -1,16 +1,28 @@
 const assert = require('assert');
+const fs = require('fs');
 const qs = require('querystring');
 const request = require('request-promise');
 const sleep = require('sleep');
 const url = require('url');
+const util = require('util');
 
 const config = require('../config');
 const pup = require('./pup_utils');
+
+const fileExists = util.promisify(fs.access);
+const readFile = util.promisify(fs.readFile);
+const writeFile = util.promisify(fs.writeFile);
 
 const authorizationURL = 'https://www.linkedin.com/oauth/v2/authorization';
 const accessTokenURL = 'https://www.linkedin.com/oauth/v2/accessToken';
 
 async function getAccessToken() {
+	try {
+		await fileExists(config.tokenFile);
+		const token = JSON.parse(await readFile(config.tokenFile));
+		if (token['expiration_date'] - Date.now() > 0) return token;
+	} catch (e) {}
+
 	let params = qs.stringify({
 		response_type: 'code',
 		client_id: config.linkedinApiKey,
@@ -72,9 +84,11 @@ async function getAccessToken() {
 	});
 	res = JSON.parse(res);
 	assert(res['access_token']);
-	assert(res['expires_in']);
+	assert(res['expires_in']); // = 60 days
+	res['expiration_date'] = new Date().setSeconds(new Date().getSeconds() + res['expires_in'] - 3600 * 24 * 5); // 5 days before the actual expiration date
 
 	await browser.close();
+	await writeFile(config.tokenFile, JSON.stringify(res));
 	return res;
 }
 

@@ -122,7 +122,7 @@ async function scrapPeopleProfile(page, url = null) {
 		await pup.goTo(page, url, {ignoreDestination: true});
 		await logIn(page, config.linkedinEmail, config.linkedinPassword, {redirectionUrl: url});
 	}
-	await page.waitForSelector('section.pv-profile-section');
+	await page.waitForSelector('div.profile-detail > div.pv-deferred-area ');
 	const toggleButton = await page.$('pv-top-card-section__summary-toggle-button');
 	if (toggleButton) await toggleButton.click();
 	if (await page.$('span.pv-top-card-v2-section__company-name'))
@@ -266,13 +266,17 @@ async function getCompanyData(companyId) {
 async function logIn(page, login, password, options = {}) {
 	let loginButton = await page.$('p.login > a, a[title="Sign in"]');
 	if (loginButton) {
+		// if log in button is present, we have to log in
 		console.log('Logging in...');
-		await loginButton.click();
+		await loginButton.click(); // either on the button at the top right corner either on the button in the redirection form
 		try {
+			// traditional login form
 			await page.waitFor('#login-email', {timeout: 2000});
 		} catch (e) {
+			// forced redirection to login form because we are not logged
 			await page.waitForNavigation();
 		}
+		await page.waitFor('#login-email, #username', {timeout: 2000});
 		await page.waitFor(2000);
 		await page.type('#login-email, #username', login);
 		await page.type('#login-password, #password', password);

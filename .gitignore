@@ -2,7 +2,7 @@
 node_modules/
 web/assets/bundle.js
 assets/cookies.json
-assets/access_token.txt
+assets/token.json
 config.js
 error.png
 npm-debug.log
