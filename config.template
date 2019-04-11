@@ -7,7 +7,7 @@ module.exports = {
     'linkedinApiSecret': '', // your Linkedin app client secret
     'linkedinEmail': '', // your Linkedin account email
     'linkedinPassword': '', // your Linkedin account password
-    'oauthCallback': '', // a random url (e.g. "https://www.google.com")
+    'oauthCallback': '', // your Linkedin app redirect URL
     'cookiesFile': assetsFolder + 'cookies.json', // no need to touch that
     'screenshotFile': assetsFolder + 'screenshot.png', // no need to touch that
     'rootWebFolder': path.resolve(__dirname, 'web') + '/', // no need to touch that
