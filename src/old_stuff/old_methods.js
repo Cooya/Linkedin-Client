@@ -3,6 +3,9 @@ const fs = require('fs');
 const request = require('request');
 const util = require('util');
 
+const config = require('../../config');
+const logger = require('@coya/logger')(config.logging);
+
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 const get = util.promisify(request.get);
@@ -16,10 +19,10 @@ async function processEntries(page, entries, csvFile, interval) {
 	let currentPageUrl;
 	for (let i in entries) {
 		entry = entries[i];
-		console.log('Processing entry ' + i + '...');
+		logger.info('Processing entry ' + i + '...');
 
 		if (i == 0 || entry.length > 5) {
-			console.log('Skipping...');
+			logger.info('Skipping...');
 			continue; // skip the already processed entries
 		}
 
@@ -34,7 +37,7 @@ async function processEntries(page, entries, csvFile, interval) {
 		await pup.scrollPage(page, '#experience-section', 0.5);
 
 		// wait a bit to prevent robot detection
-		console.log(util.format('Waiting for %d ms.', interval / 2));
+		logger.info(util.format('Waiting for %d ms.', interval / 2));
 		await page.waitFor(interval / 2); // 2 sec minimum required otherwise it does not work very well
 
 		// get the link of the company
@@ -60,11 +63,11 @@ async function processEntries(page, entries, csvFile, interval) {
 		}
 
 		// saving the retrieved details in the csv file
-		console.log('Saving last processed entry...');
+		logger.info('Saving last processed entry...');
 		await writeFile(csvFile, await stringifyCSV(entries));
 
 		// wait a bit to prevent robot detection
-		console.log(util.format('Waiting for %d ms.', interval / 2));
+		logger.info(util.format('Waiting for %d ms.', interval / 2));
 		await page.waitFor(interval / 2);
 	}
 }
@@ -107,7 +110,7 @@ async function retrieveEmail(firstName, lastName, domainName) {
 async function getCompaniesData() {
 	// load entries from csv file
 	const entries = await parseCSV(await readFile(config.csvFile), {relax_column_count: true});
-	console.log(entries.length + ' entries to process.');
+	logger.info(entries.length + ' entries to process.');
 
 	// process entries
 	const browser = await pup.runBrowser({headless: config.headless});
@@ -115,13 +118,13 @@ async function getCompaniesData() {
 	await processEntries(page, entries, config.csvFile, config.scrapingInterval);
 	await browser.close();
 
-	console.log('Process done.');
+	logger.info('Process done.');
 }
 
 async function getEmails() {
 	// load entries from csv file
 	const entries = await parseCSV(await readFile(config.csvFile), {relax_column_count: true});
-	console.log(entries.length + ' entries to process.');
+	logger.info(entries.length + ' entries to process.');
 
 	let entry;
 	let emailResult;
@@ -130,30 +133,30 @@ async function getEmails() {
 
 		entry = entries[i];
 		if (entry.length == 12) {
-			console.log('Skipping already processed entry ' + i + '...');
+			logger.info('Skipping already processed entry ' + i + '...');
 			continue;
 		}
 
 		if (entry[9] == 'N/A') {
 			// cannot get the email address
-			console.log('Cannot get email address for the entry ' + i + '.');
+			logger.info('Cannot get email address for the entry ' + i + '.');
 			entries[i] = entry.concat(['N/A', 'N/A']);
-			console.log('Saving entries into file...');
+			logger.info('Saving entries into file...');
 			await writeFile(config.csvFile, await stringifyCSV(entries));
 			continue;
 		}
 
-		console.log('Processing entry ' + i + '...');
+		logger.info('Processing entry ' + i + '...');
 		emailResult = await retrieveEmail(entry[0], entry[1], entry[9]);
 		entries[i] = emailResult
 			? entry.concat(emailResult['email'], emailResult['accuracy'])
 			: entry.concat(['N/A', 'N/A']);
 
-		console.log('Saving entries into file...');
+		logger.info('Saving entries into file...');
 		await writeFile(config.csvFile, await stringifyCSV(entries));
 
 		sleep.sleep(1);
 	}
 
-	console.log('Process done.');
+	logger.info('Process done.');
 }

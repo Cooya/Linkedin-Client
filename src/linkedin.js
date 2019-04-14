@@ -4,6 +4,7 @@ require('@coya/utils');
 const oauth = require('./oauth');
 const config = require('../config');
 const linkedinApiFields = require('../assets/linkedin_api_fields.json');
+const logger = require('@coya/logger')(config.logging);
 const pup = require('./pup_utils');
 
 let linkedin;
@@ -16,12 +17,12 @@ module.exports = {
 
 async function init() {
 	try {
-		console.log('Initializing the Linkedin client...');
+		logger.info('Initializing the Linkedin client...');
 		const accessToken = await oauth.getAccessToken();
 		tokenExpirationDate = new Date().addSeconds(accessToken['expires_in']);
 		linkedin = nodeLinkedin(config.linkedinApiKey, config.linkedinApiSecret).init(accessToken['access_token']);
 	} catch (e) {
-		console.error(e);
+		logger.error(e);
 		throw new Error('Initialization has failed.');
 	}
 }
@@ -30,7 +31,7 @@ async function init() {
 async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 	if (new Date() > tokenExpirationDate) await init();
 
-	console.log('Getting data from "' + linkedinUrl + '"...');
+	logger.info('Getting data from "' + linkedinUrl + '"...');
 	let browser = null;
 	let page = options.page;
 	let peopleDetails = null;
@@ -94,7 +95,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 		companyDetails = await scrapCompanyPage(page, linkedinUrl);
 	} catch (e) {
 		// I was trying to understand why I cannot log in to Linkedin from my VPS server
-		console.error(page.url());
+		logger.error(page.url());
 		await page.screenshot({path: 'error.png'});
 		throw e;
 	}
@@ -267,7 +268,7 @@ async function logIn(page, login, password, options = {}) {
 	let loginButton = await page.$('p.login > a, a[title="Sign in"]');
 	if (loginButton) {
 		// if log in button is present, we have to log in
-		console.log('Logging in...');
+		logger.info('Logging in...');
 		await loginButton.click(); // either on the button at the top right corner either on the button in the redirection form
 		try {
 			// traditional login form
@@ -283,7 +284,7 @@ async function logIn(page, login, password, options = {}) {
 		await page.click('#login-submit, button[aria-label="Sign in"]');
 		await page.waitForNavigation();
 		await pup.saveCookies(page, config.cookiesFile);
-		console.log('Logged in.');
+		logger.info('Logged in.');
 	}
 
 	if (options.redirectionUrl && page.url() != options.redirectionUrl)

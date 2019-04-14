@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 
 const config = require('../../config');
 const linkedin = require('../linkedin');
+const logger = require('@coya/logger')(config.logging);
 const models = require('./models');
 const pup = require('../pup_utils');
 
@@ -14,7 +15,7 @@ const PeopleToProcess = models.PeopleToProcess;
 	try {
 		await mongoose.connect('mongodb://localhost/test');
 	} catch (e) {
-		console.error(e);
+		logger.error(e);
 		process.exit(1);
 	}
 
@@ -26,17 +27,16 @@ const PeopleToProcess = models.PeopleToProcess;
 	if (!peopleToProcess) peopleToProcess = new PeopleToProcess({linkedinUrl: startingPointUrl, processed: false});
 	let timeToWait;
 	while (peopleToProcess) {
-		console.log('Retrieving data from the current people to process...');
+		logger.info('Retrieving data from the current people to process...');
 		try {
 			peopleDetails = await linkedin.getCompanyOrPeopleDetails(peopleToProcess.linkedinUrl, {
 				page: page,
 				forcePeopleScraping: true
 			});
-			console.log(peopleDetails);
+			logger.info(peopleDetails);
 		} catch (e) {
 			if (e.message.indexOf('Page crashed!') != -1) continue;
-			console.error(e.message);
-			console.error(e);
+			logger.error(e);
 			process.exit(1);
 		}
 
@@ -47,7 +47,7 @@ const PeopleToProcess = models.PeopleToProcess;
 		peopleToProcess = await findNextOnePeopleToProcess();
 
 		timeToWait = getRandomInt(120000, 180000);
-		console.log('Sleeping for ' + timeToWait + 'ms...');
+		logger.info('Sleeping for ' + timeToWait + 'ms...');
 		sleep.msleep(timeToWait);
 	}
 
@@ -55,24 +55,24 @@ const PeopleToProcess = models.PeopleToProcess;
 })();
 
 async function findNextOnePeopleToProcess() {
-	console.log('Fetching the next one people to process...');
+	logger.info('Fetching the next one people to process...');
 	return await PeopleToProcess.findOne({processed: false});
 }
 
 async function savePeople(peopleDetails) {
-	console.log('Saving people in database...');
+	logger.info('Saving people in database...');
 	try {
 		const people = new People(peopleDetails);
 		await people.validate();
 		await people.save();
 	} catch (e) {
-		console.error(e);
+		logger.error(e);
 		process.exit(1);
 	}
 }
 
 async function savePeopleToProcess(linkedinUrl) {
-	console.log('Saving related people in database...');
+	logger.info('Saving related people in database...');
 	try {
 		await new PeopleToProcess({
 			linkedinUrl: linkedinUrl,
@@ -80,19 +80,19 @@ async function savePeopleToProcess(linkedinUrl) {
 		}).save();
 	} catch (e) {
 		if (e.message.indexOf('E11000 duplicate key error collection') == -1) {
-			console.error(e);
+			logger.error(e);
 			process.exit(1);
 		}
 	}
 }
 
 async function markPeopleToProcessAsProcessed(peopleToProcess) {
-	console.log('Marking the last processed people as processed...');
+	logger.info('Marking the last processed people as processed...');
 	try {
 		peopleToProcess.processed = true;
 		await peopleToProcess.save();
 	} catch (e) {
-		console.error(e);
+		logger.error(e);
 		process.exit(1);
 	}
 }

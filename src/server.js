@@ -3,6 +3,7 @@ const linkedin = require('./linkedin');
 const Raven = require('raven');
 
 const config = require('../config');
+const logger = require('@coya/logger')(config.logging);
 
 // configuring Raven
 Raven.config(config.sentryEndpoint, {
@@ -15,12 +16,12 @@ const app = express();
 const ipAddresses = {};
 
 process.on('uncaughtException', (e) => {
-	console.error('UNCAUGHT EXCEPTION');
-	console.error(e);
+	logger.error('UNCAUGHT EXCEPTION');
+	logger.error(e);
 });
 process.on('unhandledRejection', (e) => {
-	console.error('UNHANDLED REJECTION');
-	console.error(e);
+	logger.error('UNHANDLED REJECTION');
+	logger.error(e);
 });
 
 app.get('/', (req, res) => {
@@ -28,7 +29,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/request', saveIpAddress, async (req, res) => {
-	console.log(
+	logger.info(
 		'Request received from IP address = ' + req.ipAddress + ' with linkedin URL = ' + req.query.linkedinUrl
 	);
 
@@ -36,12 +37,12 @@ app.get('/request', saveIpAddress, async (req, res) => {
 
 	try {
 		const details = await linkedin.getCompanyOrPeopleDetails(req.query.linkedinUrl);
-		//console.debug(details);
+		//logger.debug(details);
 		if (details['error']) res.json({error: details['error'], result: null});
 		else res.json({error: null, result: details});
-		console.log('Response sent !');
+		logger.info('Response sent !');
 	} catch (e) {
-		console.error(e);
+		logger.error(e);
 		res.json({error: 'Something went wrong...'});
 	}
 });
@@ -56,13 +57,13 @@ else {
 		try {
 			await linkedin.init();
 		} catch (e) {
-			console.error(e);
+			logger.error(e);
 			process.exit(1);
 		}
 
 		app.use('/assets', express.static(config.webAssetsFolder));
 
-		console.log('Server started on port ' + config.serverPort + ', waiting for requests...');
+		logger.info('Server started on port ' + config.serverPort + ', waiting for requests...');
 		app.listen(config.serverPort);
 	})();
 }
@@ -70,11 +71,11 @@ else {
 function saveIpAddress(req, res, next) {
 	const ipAddress = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).replace('::ffff:', '');
 	ipAddresses[ipAddress] = (ipAddresses[ipAddress] || 0) + 1;
-	console.log('Number of shots for this address : ' + ipAddresses[ipAddress]);
+	logger.info('Number of shots for this address : ' + ipAddresses[ipAddress]);
 	if (req.query.token != config.adminToken && ipAddresses[ipAddress] > 10)
 		res.json({error: 'You have reached your maximum number of trials, contact me if you wish to work with me.'});
 	else {
-		if (req.query.token == config.adminToken) console.log('Valid token admin provided.');
+		if (req.query.token == config.adminToken) logger.info('Valid token admin provided.');
 		req.ipAddress = ipAddress;
 		next();
 	}

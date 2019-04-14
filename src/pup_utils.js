@@ -3,6 +3,9 @@ const puppeteer = require('puppeteer');
 const sleep = require('sleep');
 const util = require('util');
 
+const config = require('../config');
+const logger = require('@coya/logger')(config.logging);
+
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 
@@ -37,7 +40,7 @@ async function runBrowser(options) {
 }
 
 async function createPage(browser, cookiesFile) {
-	console.debug('Creating page...');
+	logger.debug('Creating page...');
 	const page = await browser.newPage();
 	await page.setUserAgent('Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0');
 	await page.setViewport({width: 1600, height: 900});
@@ -45,19 +48,19 @@ async function createPage(browser, cookiesFile) {
 	if (cookiesFile) await loadCookies(page, cookiesFile);
 	process.on('unhandledRejection', (error) => {
 		page.screenshot({path: 'error.png'}).then(() => {
-			console.error(error);
+			logger.error(error);
 			process.exit(1);
 		});
 	});
 	page.on('console', (msg) => {
-		for (let i = 0; i < msg.args().length; ++i) console.log(`${i}: ${msg.args()[i]}`);
+		for (let i = 0; i < msg.args().length; ++i) logger.info(`${i}: ${msg.args()[i]}`);
 	});
-	console.debug('Page created.');
+	logger.debug('Page created.');
 	return page;
 }
 
 async function goTo(page, url, options = {}) {
-	console.log('Going to %s...', url);
+	logger.info('Going to %s...', url);
 
 	options.waitUntil = options.waitUntil || 'networkidle2';
 	options.ignoreDestination = options.ignoreDestination !== undefined || false;
@@ -69,7 +72,7 @@ async function goTo(page, url, options = {}) {
 			await page.goto(url, options);
 			again = false;
 		} catch (e) {
-			if (e.message.indexOf('Navigation Timeout Exceeded') != -1) console.log('goTo() timeout !');
+			if (e.message.indexOf('Navigation Timeout Exceeded') != -1) logger.info('goTo() timeout !');
 			else throw e;
 		}
 	}
@@ -78,7 +81,7 @@ async function goTo(page, url, options = {}) {
 }
 
 async function scrollPage(page, selector, xPosition = 1) {
-	console.log('Scrolling the page...');
+	logger.info('Scrolling the page...');
 	while (true) {
 		await page.evaluate('window.scrollTo(0, document.body.scrollHeight * ' + xPosition + ')');
 		try {
@@ -86,7 +89,7 @@ async function scrollPage(page, selector, xPosition = 1) {
 			return;
 		} catch (e) {
 			xPosition = xPosition >= 1 ? 0 : xPosition + 0.1;
-			console.log('Scrolling again to ' + xPosition + '...');
+			logger.info('Scrolling again to ' + xPosition + '...');
 		}
 	}
 }
@@ -96,7 +99,7 @@ async function infiniteScroll(page, action) {
 	let newScrollPos = 0;
 	let result = await action();
 	while (!result) {
-		console.debug('Scrolling the page...');
+		logger.debug('Scrolling the page...');
 		newScrollPos = await page.evaluate(() => {
 			window.scrollBy(0, document.body.scrollHeight);
 			return document.body.scrollHeight;
@@ -110,7 +113,7 @@ async function infiniteScroll(page, action) {
 }
 
 async function click(page, element, timeout = 30) {
-	console.log('Clicking on element...');
+	logger.info('Clicking on element...');
 
 	let again = true;
 	while (again) {
@@ -122,7 +125,7 @@ async function click(page, element, timeout = 30) {
 			again = false;
 		} catch (e) {
 			if (e.message.indexOf('Navigation Timeout Exceeded') != -1) {
-				console.error('click() timeout !');
+				logger.error('click() timeout !');
 				await reloadPage(page);
 			} else throw e;
 		}
@@ -130,7 +133,7 @@ async function click(page, element, timeout = 30) {
 }
 
 async function reloadPage(page, timeout = 30, attempts = 5) {
-	console.log('Reloading page...');
+	logger.info('Reloading page...');
 
 	for (let i = 0; i < attempts; ++i) {
 		try {
@@ -142,7 +145,7 @@ async function reloadPage(page, timeout = 30, attempts = 5) {
 
 			return;
 		} catch (e) {
-			if (e.message.indexOf('Navigation Timeout Exceeded') != -1) console.error('Page reloading timeout !');
+			if (e.message.indexOf('Navigation Timeout Exceeded') != -1) logger.error('Page reloading timeout !');
 			else throw e;
 		}
 	}
@@ -151,31 +154,31 @@ async function reloadPage(page, timeout = 30, attempts = 5) {
 }
 
 async function loadCookies(page, cookiesFile) {
-	console.log('Loading cookies...');
+	logger.info('Loading cookies...');
 	let cookies;
 	try {
 		cookies = JSON.parse(await readFile(cookiesFile, 'utf-8'));
 	} catch (e) {
 		await writeFile(cookiesFile, '[]');
-		console.log('Empty cookies file created.');
+		logger.info('Empty cookies file created.');
 		return;
 	}
 	await page.setCookie(...cookies);
-	console.log('Cookies loaded.');
+	logger.info('Cookies loaded.');
 }
 
 async function saveCookies(page, cookiesFile) {
-	console.log('Saving cookies...');
+	logger.info('Saving cookies...');
 	const cookies = JSON.stringify(await page.cookies());
 	await writeFile(cookiesFile, cookies);
-	console.log('Cookies saved.');
+	logger.info('Cookies saved.');
 }
 
 async function deleteCookiesFile(cookiesFile) {
 	const fileExists = await fs.exists(cookiesFile);
-	if (!fileExists) return console.log('Cookies file does not exist.');
+	if (!fileExists) return logger.info('Cookies file does not exist.');
 	await fs.unlink(cookiesFile);
-	console.log('Cookies file deleted.');
+	logger.info('Cookies file deleted.');
 }
 
 function value(page, selector, value) {

@@ -7,6 +7,7 @@ const url = require('url');
 const util = require('util');
 
 const config = require('../config');
+const logger = require('@coya/logger')(config.logging);
 const pup = require('./pup_utils');
 
 const fileExists = util.promisify(fs.access);
@@ -96,9 +97,9 @@ if (process.env.NODE_ENV == 'oauth') {
 	(async () => {
 		try {
 			const accessToken = await getAccessToken();
-			console.log(accessToken);
+			logger.info(accessToken);
 		} catch (e) {
-			console.error(e);
+			logger.error(e);
 		}
 	})();
 } else {

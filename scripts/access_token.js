@@ -2,7 +2,8 @@ const fs = require('fs');
 const request = require('request-promise');
 const util = require('util');
 
-const config = require('../server/assets/config');
+const config = require('../config');
+const logger = require('@coya/logger')(config.logging);
 const pup = require('../server/pup_utils');
 
 const writeFile = util.promisify(fs.writeFile);
@@ -21,7 +22,7 @@ const writeFile = util.promisify(fs.writeFile);
 		};
 		await getToken(page, creds);
 	} catch (e) {
-		console.error(e);
+		logger.error(e);
 	}
 
 	//await page.waitFor(60000); // for debugging
@@ -75,5 +76,5 @@ async function getToken(page, creds) {
 	if (!accessToken) throw Error('The request has failed, no access token has been found in the response.');
 
 	await writeFile(config.accessTokenFile, accessToken);
-	console.log('The access token has been saved successfully.');
+	logger.info('The access token has been saved successfully.');
 }
