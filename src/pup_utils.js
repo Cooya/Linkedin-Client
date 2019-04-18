@@ -47,10 +47,8 @@ async function createPage(browser, cookiesFile) {
 	await page.setExtraHTTPHeaders({'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8'});
 	if (cookiesFile) await loadCookies(page, cookiesFile);
 	process.on('unhandledRejection', (error) => {
-		page.screenshot({path: 'error.png'}).then(() => {
-			logger.error(error);
-			process.exit(1);
-		});
+		logger.error(error);
+		page.screenshot({path: 'error.png'}).catch(logger.error);
 	});
 	page.on('console', (msg) => {
 		for (let i = 0; i < msg.args().length; ++i) logger.info(`${i}: ${msg.args()[i]}`);
