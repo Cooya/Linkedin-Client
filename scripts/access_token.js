@@ -9,8 +9,8 @@ const pup = require('@coya/puppy');
 const writeFile = util.promisify(fs.writeFile);
 
 (async () => {
-	const browser = await pup.runBrowser({headless: false});
-	const page = await pup.createPage(browser, config.cookiesFile, logger);
+	const browser = await pup.runBrowser({headless: false, logger});
+	const page = await pup.createPage(browser, config.cookiesFile);
 
 	try {
 		const creds = {

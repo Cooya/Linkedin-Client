@@ -42,8 +42,8 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 		if (options.forcePeopleScraping) {
 			// force people profile scraping instead of using the API
 			if (!page) {
-				browser = await pup.runBrowser({headless: config.headless});
-				page = await pup.createPage(browser, config.cookiesFile, logger);
+				browser = await pup.runBrowser({headless: config.headless, logger});
+				page = await pup.createPage(browser, config.cookiesFile);
 			}
 			peopleDetails = await scrapPeopleProfile(page, linkedinUrl);
 		} else {
@@ -58,8 +58,8 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 			peopleDetails['isPrivateProfile'] = peopleDetails['id'] == 'private';
 			if (peopleDetails['isPrivateProfile'] || linkedinApiInternalError) {
 				if (!page) {
-					browser = await pup.runBrowser({headless: config.headless});
-					page = await pup.createPage(browser, config.cookiesFile, logger);
+					browser = await pup.runBrowser({headless: config.headless, logger});
+					page = await pup.createPage(browser, config.cookiesFile);
 				}
 				peopleDetails = await scrapPeopleProfile(page, linkedinUrl);
 			}
@@ -85,8 +85,8 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 	}
 
 	if (!page) {
-		browser = await pup.runBrowser({headless: config.headless});
-		page = await pup.createPage(browser, config.cookiesFile, logger);
+		browser = await pup.runBrowser({headless: config.headless, logger});
+		page = await pup.createPage(browser, config.cookiesFile);
 	}
 
 	// scrap company data

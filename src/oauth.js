@@ -31,8 +31,8 @@ async function getAccessToken() {
 		state: '12345'
 	});
 
-	const browser = await pup.runBrowser({headless: config.headless});
-	const page = await pup.createPage(browser, config.cookiesFile, logger);
+	const browser = await pup.runBrowser({headless: config.headless, logger});
+	const page = await pup.createPage(browser, config.cookiesFile);
 	await pup.goTo(page, authorizationURL + '?' + params, {ignoreDestination: true});
 	sleep.sleep(3);
 

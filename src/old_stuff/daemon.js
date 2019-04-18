@@ -19,8 +19,8 @@ const PeopleToProcess = models.PeopleToProcess;
 		process.exit(1);
 	}
 
-	const browser = await pup.runBrowser();
-	const page = await pup.createPage(browser, config.cookiesFile, logger);
+	const browser = await pup.runBrowser({logger});
+	const page = await pup.createPage(browser, config.cookiesFile);
 
 	let peopleDetails;
 	let peopleToProcess = await findNextOnePeopleToProcess();
