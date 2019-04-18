@@ -114,7 +114,7 @@ async function getCompaniesData() {
 
 	// process entries
 	const browser = await pup.runBrowser({headless: config.headless});
-	const page = await pup.createPage(browser, config.cookiesFile);
+	const page = await pup.createPage(browser, config.cookiesFile, logger);
 	await processEntries(page, entries, config.csvFile, config.scrapingInterval);
 	await browser.close();
 

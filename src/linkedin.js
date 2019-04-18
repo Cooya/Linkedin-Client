@@ -5,7 +5,7 @@ const oauth = require('./oauth');
 const config = require('../config');
 const linkedinApiFields = require('../assets/linkedin_api_fields.json');
 const logger = require('@coya/logger')(config.logging);
-const pup = require('./pup_utils');
+const pup = require('@coya/puppy');
 
 let linkedin;
 let tokenExpirationDate;
@@ -43,7 +43,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 			// force people profile scraping instead of using the API
 			if (!page) {
 				browser = await pup.runBrowser({headless: config.headless});
-				page = await pup.createPage(browser, config.cookiesFile);
+				page = await pup.createPage(browser, config.cookiesFile, logger);
 			}
 			peopleDetails = await scrapPeopleProfile(page, linkedinUrl);
 		} else {
@@ -59,7 +59,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 			if (peopleDetails['isPrivateProfile'] || linkedinApiInternalError) {
 				if (!page) {
 					browser = await pup.runBrowser({headless: config.headless});
-					page = await pup.createPage(browser, config.cookiesFile);
+					page = await pup.createPage(browser, config.cookiesFile, logger);
 				}
 				peopleDetails = await scrapPeopleProfile(page, linkedinUrl);
 			}
@@ -86,7 +86,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 
 	if (!page) {
 		browser = await pup.runBrowser({headless: config.headless});
-		page = await pup.createPage(browser, config.cookiesFile);
+		page = await pup.createPage(browser, config.cookiesFile, logger);
 	}
 
 	// scrap company data

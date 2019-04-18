@@ -1,4 +1,4 @@
-const pup = require('../src/pup_utils');
+const pup = require('@coya/puppy');
 
 const config = require('../config');
 

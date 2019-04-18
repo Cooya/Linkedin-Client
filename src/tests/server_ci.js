@@ -28,7 +28,7 @@ describe('Linkedin scraper form tests', () => {
 			.get('/request?linkedinUrl=' + url)
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
-				expect(res.body.error).to.have.string("Couldn't find member");
+				expect(res.body.error).to.have.string('Couldn\'t find member');
 				done();
 			});
 	});

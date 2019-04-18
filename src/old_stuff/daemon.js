@@ -5,7 +5,7 @@ const config = require('../../config');
 const linkedin = require('../linkedin');
 const logger = require('@coya/logger')(config.logging);
 const models = require('./models');
-const pup = require('../pup_utils');
+const pup = require('@coya/puppy');
 
 const startingPointUrl = 'https://www.linkedin.com/in/nicomarcy/';
 const People = models.People;
@@ -20,7 +20,7 @@ const PeopleToProcess = models.PeopleToProcess;
 	}
 
 	const browser = await pup.runBrowser();
-	const page = await pup.createPage(browser, config.cookiesFile);
+	const page = await pup.createPage(browser, config.cookiesFile, logger);
 
 	let peopleDetails;
 	let peopleToProcess = await findNextOnePeopleToProcess();

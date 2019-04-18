@@ -4,13 +4,13 @@ const util = require('util');
 
 const config = require('../config');
 const logger = require('@coya/logger')(config.logging);
-const pup = require('../server/pup_utils');
+const pup = require('@coya/puppy');
 
 const writeFile = util.promisify(fs.writeFile);
 
 (async () => {
 	const browser = await pup.runBrowser({headless: false});
-	const page = await pup.createPage(browser, config.cookiesFile);
+	const page = await pup.createPage(browser, config.cookiesFile, logger);
 
 	try {
 		const creds = {

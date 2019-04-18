@@ -8,7 +8,7 @@ const util = require('util');
 
 const config = require('../config');
 const logger = require('@coya/logger')(config.logging);
-const pup = require('./pup_utils');
+const pup = require('@coya/puppy');
 
 const fileExists = util.promisify(fs.access);
 const readFile = util.promisify(fs.readFile);
@@ -32,7 +32,7 @@ async function getAccessToken() {
 	});
 
 	const browser = await pup.runBrowser({headless: config.headless});
-	const page = await pup.createPage(browser, config.cookiesFile);
+	const page = await pup.createPage(browser, config.cookiesFile, logger);
 	await pup.goTo(page, authorizationURL + '?' + params, {ignoreDestination: true});
 	sleep.sleep(3);
 
