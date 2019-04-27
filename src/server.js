@@ -1,6 +1,7 @@
 const express = require('express');
 const linkedin = require('./linkedin');
 const Raven = require('raven');
+const {Counter, countVisitors} = require('@coya/counter');
 
 const config = require('../config');
 const logger = require('@coya/logger')(config.logging);
@@ -13,7 +14,6 @@ Raven.config(config.sentryEndpoint, {
 }).install();
 
 const app = express();
-const ipAddresses = {};
 
 process.on('uncaughtException', (e) => {
 	logger.error('UNCAUGHT EXCEPTION');
@@ -24,14 +24,17 @@ process.on('unhandledRejection', (e) => {
 	logger.error(e);
 });
 
+app.use(countVisitors);
+
 app.get('/', (req, res) => {
 	res.sendFile(config.rootWebFolder + 'index.html');
 });
 
 app.get('/request', saveIpAddress, async (req, res) => {
-	logger.info(
-		'Request received from IP address = ' + req.ipAddress + ' with linkedin URL = ' + req.query.linkedinUrl
-	);
+	logger.info(`Request received from IP address = ${req.ipAddress} with linkedin URL = ${req.query.linkedinUrl}`);
+
+	await Counter.inc('linkedin-requests-global');
+	await Counter.inc('linkedin-requests', {dailyCounter: true});
 
 	if (!req.query.linkedinUrl) return res.json({error: 'A linkedin URL is required.'});
 
@@ -47,15 +50,12 @@ app.get('/request', saveIpAddress, async (req, res) => {
 	}
 });
 
-if (process.env.NODE_ENV == 'test')
-	module.exports = {
-		app: app,
-		linkedin: linkedin
-	};
+if (process.env.NODE_ENV == 'test') module.exports = {app, linkedin};
 else {
 	(async () => {
 		try {
 			await linkedin.init();
+			await Counter.connect(config.dbUrl);
 		} catch (e) {
 			logger.error(e);
 			process.exit(1);
@@ -68,6 +68,7 @@ else {
 	})();
 }
 
+const ipAddresses = {};
 function saveIpAddress(req, res, next) {
 	const ipAddress = (req.headers['x-forwarded-for'] || req.connection.remoteAddress).replace('::ffff:', '');
 	ipAddresses[ipAddress] = (ipAddresses[ipAddress] || 0) + 1;
