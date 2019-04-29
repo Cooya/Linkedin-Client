@@ -1,16 +1,9 @@
 const {Counter, countVisitors} = require('@coya/counter');
 const express = require('express');
-const Raven = require('raven');
 
 const config = require('../config');
 const linkedin = require('./linkedin_v2');
 const logger = require('@coya/logger')(config.logging);
-
-Raven.config(config.sentryEndpoint, {
-	shouldSendCallback: () => {
-		return process.env.NODE_ENV == 'production';
-	}
-}).install();
 
 const app = express();
 app.use(countVisitors);

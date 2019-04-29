@@ -41,7 +41,6 @@
 		"express": "^4.16.3",
 		"mongoose": "^5.1.2",
 		"node-linkedin": "^0.5.6",
-		"raven": "^2.6.2",
 		"request-promise": "^4.2.2",
 		"sleep": "^5.1.1",
 		"whatwg-fetch": "^2.0.4"
