@@ -1,12 +1,11 @@
-const express = require('express');
-const linkedin = require('./linkedin');
-const Raven = require('raven');
 const {Counter, countVisitors} = require('@coya/counter');
+const express = require('express');
+const Raven = require('raven');
 
 const config = require('../config');
+const linkedin = require('./linkedin_v2');
 const logger = require('@coya/logger')(config.logging);
 
-// configuring Raven
 Raven.config(config.sentryEndpoint, {
 	shouldSendCallback: () => {
 		return process.env.NODE_ENV == 'production';
@@ -14,16 +13,6 @@ Raven.config(config.sentryEndpoint, {
 }).install();
 
 const app = express();
-
-process.on('uncaughtException', (e) => {
-	logger.error('UNCAUGHT EXCEPTION');
-	logger.error(e);
-});
-process.on('unhandledRejection', (e) => {
-	logger.error('UNHANDLED REJECTION');
-	logger.error(e);
-});
-
 app.use(countVisitors);
 
 app.get('/', (req, res) => {
@@ -40,13 +29,13 @@ app.get('/request', saveIpAddress, async (req, res) => {
 
 	try {
 		const details = await linkedin.getCompanyOrPeopleDetails(req.query.linkedinUrl);
-		//logger.debug(details);
-		if (details['error']) res.json({error: details['error'], result: null});
+		// logger.debug(details);
+		if (!details) res.json({error: 'The people/company has not been found.', result: null});
 		else res.json({error: null, result: details});
 		logger.info('Response sent !');
 	} catch (e) {
 		logger.error(e);
-		res.json({error: 'Something went wrong...'});
+		res.json({error: e.message, result: null});
 	}
 });
 
@@ -54,7 +43,6 @@ if (process.env.NODE_ENV == 'test') module.exports = {app, linkedin};
 else {
 	(async () => {
 		try {
-			await linkedin.init();
 			await Counter.connect(config.dbUrl);
 		} catch (e) {
 			logger.error(e);

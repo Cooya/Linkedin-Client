@@ -1,42 +1,56 @@
-const server = require('../server');
-const chai = require('chai');
+const Counter = require('@coya/counter').Counter;
+const expect = require('chai').expect;
 const request = require('supertest');
 
-const expect = chai.expect;
+const config = require('../../config');
+const server = require('../server');
 
 describe('Linkedin scraper form tests', () => {
 	let app = server.app;
 
 	before(async () => {
-		await server.linkedin.init();
+		await Counter.connect(config.dbUrl);
+	});
+
+	after(async () => {
+		await Counter.disconnect();
+	});
+
+	it('No URL provided', (done) => {
+		request(app)
+			.get('/request')
+			.end((err, res) => {
+				expect(res.statusCode).to.equal(200);
+				expect(res.body.error).to.have.string('A linkedin URL is required.');
+				done();
+			});
 	});
 
 	it('Invalid URL', (done) => {
-		const url = 'toto';
 		request(app)
-			.get('/request?linkedinUrl=' + url)
+			.get('/request?linkedinUrl=toto')
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
-				expect(res.body.error).to.have.string('Public profile URL is not correct');
+				expect(res.body.error).to.have.string(
+					'Invalid URL provided, must be a people profile URL or a company page URL.'
+				);
 				done();
 			});
 	});
 
 	it('Invalid linkedin URL', (done) => {
-		const url = 'https://www.linkedin.com/in/toto';
 		request(app)
-			.get('/request?linkedinUrl=' + url)
+			.get('/request?linkedinUrl=https://www.linkedin.com/in/toto')
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
-				expect(res.body.error).to.have.string('Couldn\'t find member');
+				expect(res.body.error).to.have.string('The people/company has not been found.');
 				done();
 			});
 	});
 
 	it('People profile without company', (done) => {
-		const url = 'https://www.linkedin.com/in/joana-ferraz-3388568b/';
 		request(app)
-			.get('/request?linkedinUrl=' + url)
+			.get('/request?linkedinUrl=https://www.linkedin.com/in/joana-ferraz-3388568b/')
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
 				expect(res.body.error).to.equal(null);
@@ -46,28 +60,34 @@ describe('Linkedin scraper form tests', () => {
 	});
 
 	it('People profile with company', (done) => {
-		const url = 'https://www.linkedin.com/in/alix-vandame/';
 		request(app)
-			.get('/request?linkedinUrl=' + url)
+			.get('/request?linkedinUrl=https://www.linkedin.com/in/alix-vandame/')
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
 				expect(res.body.error).to.equal(null);
 				expect(res.body.result['firstName']).to.equal('Alix');
-				expect(res.body.result['company']['name']).to.equal('talent.io');
-				expect(res.body.result['company']['foundedYear']).to.equal(2015);
+				expect(res.body.result['lastName']).to.equal('Vandame');
+				expect(res.body.result['headline']).to.equal('Helping great tech talents finding great jobs !');
+				expect(res.body.result['summary'].length).to.be.not.equal(0);
+				expect(res.body.result['location']).to.equal('Paris Area, France');
+				expect(res.body.result['industry']).to.equal('Internet');
+				expect(res.body.result['education'].length).to.equal(3);
+				expect(res.body.result['languages'].length).to.equal(3);
+				expect(res.body.result['positions'].length).to.equal(6);
+				expect(res.body.result['skills'].length).to.equal(4);
+				expect(res.body.result['linkedinUrl']).to.equal('https://www.linkedin.com/in/alix-vandame/');
 				done();
 			});
 	});
 
 	it('Private people profile', (done) => {
-		const url = 'https://www.linkedin.com/in/benoitgantaume/';
 		request(app)
-			.get('/request?linkedinUrl=' + url)
+			.get('/request?linkedinUrl=https://www.linkedin.com/in/benoitgantaume/')
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
 				expect(res.body.error).to.equal(null);
 				expect(res.body.result['firstName']).to.equal('Benoit');
-				expect(res.body.result['positions'][0]['companyName']).to.equal('artisandeveloppeur.fr');
+				expect(res.body.result['lastName']).to.equal('Gantaume');
 				done();
 			});
 	});
@@ -81,19 +101,38 @@ describe('Linkedin scraper form tests', () => {
 				expect(res.body.error).to.equal(null);
 				expect(res.body.result['linkedinUrl']).to.equal(url);
 				expect(res.body.result['name']).to.equal('talent.io');
+				expect(res.body.result['tagline']).to.equal('Great jobs for great developers');
 				expect(res.body.result['description'].length).to.be.not.equal(0);
 				expect(res.body.result['website']).to.equal('https://www.talent.io/');
 				expect(res.body.result['industry']).to.equal('Internet');
 				expect(res.body.result['companySize']).to.equal('51-200 employees');
-				expect(res.body.result['headquarters']).to.equal('Paris, Île-de-France');
+				expect(res.body.result['headquarters']).to.deep.equal({
+					country: 'FR',
+					geographicArea: '&#xCE;le-de-France',
+					city: 'Paris',
+					line1: '18, Rue de Londres'
+				});
 				expect(res.body.result['companyType']).to.equal('Partnership');
 				expect(res.body.result['foundedYear']).to.equal(2015);
-				expect(res.body.result['specialties']).to.equal(
-					'Startup, Recruiting, Tech Recruiting, and Software Engineers'
-				);
+				expect(res.body.result['specialties'].length).to.equal(4);
 
-				expect(Number.isInteger(res.body.result['followers'])).to.be.true;
-				expect(Number.isInteger(res.body.result['membersOnLinkedin'])).to.be.true;
+				expect(res.body.result['followers']).to.be.at.least(8500);
+				expect(res.body.result['membersOnLinkedin']).to.be.at.least(100);
+				done();
+			});
+	});
+
+	it('Company page with a lot of followers and members on Linkedin', (done) => {
+		const url = 'https://www.linkedin.com/company/microsoft';
+		request(app)
+			.get('/request?linkedinUrl=' + url)
+			.end((err, res) => {
+				expect(res.statusCode).to.equal(200);
+				expect(res.body.error).to.equal(null);
+				expect(res.body.result['name']).to.equal('Microsoft');
+				expect(res.body.result['companySize']).to.equal('10001+ employees');
+				expect(res.body.result['followers']).to.be.at.least(7000000);
+				expect(res.body.result['membersOnLinkedin']).to.be.at.least(160000);
 				done();
 			});
 	});

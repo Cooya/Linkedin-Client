@@ -3,6 +3,7 @@ node_modules/
 web/assets/bundle.js
 assets/cookies.json
 assets/token.json
+assets/debug.json
 config.js
 error.png
 npm-debug.log

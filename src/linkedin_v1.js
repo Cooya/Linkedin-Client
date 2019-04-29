@@ -51,7 +51,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 			peopleDetails = await getPeopleData(linkedinUrl);
 			if (peopleDetails['message']) {
 				linkedinApiInternalError = peopleDetails['message'] == 'Internal API server error';
-				if (!linkedinApiInternalError) return {error: peopleDetails['message']}; // the linkedin URL is invalid
+				if (!linkedinApiInternalError) throw new Error(peopleDetails['message']); // the linkedin URL is invalid
 			}
 
 			// get people data through web scraper if the people profile is private
