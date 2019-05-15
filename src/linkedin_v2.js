@@ -104,27 +104,28 @@ async function getCompanyOrPeopleDetails(url) {
 		processMethod = processCompanyPage;
 	} else throw new Error('Invalid URL provided, must be a people profile URL or a company page URL.');
 
-	const $ = cheerio.load(await request({url, jar}));
+	const html = await request({url, jar});
+	const $ = cheerio.load(html);
 	let data,
-		result = {};
-	for (let elt of $('code').get()) {
-		try {
-			data = JSON.parse(unescape($(elt).html()));
-		} catch (e) {
-			continue;
+		result = {linkedinUrl: url.replace('/about/', '')};
+	while (!result.name && !result.firstName) {
+		// this loop allows to fix a bug with random missing <code> tags
+		for (let elt of $('code').get()) {
+			try {
+				data = JSON.parse(unescape($(elt).html()));
+			} catch (e) {
+				continue;
+			}
+			if (!data.included) continue;
+			for (let item of data.included) {
+				processMethod(item, result);
+				if (isDevMode) fs.appendFileSync(debugFile, JSON.stringify(item, null, 4) + '\n');
+			}
 		}
-		if (!data.included) continue;
-		for (let item of data.included) {
-			processMethod(item, result);
-			if (isDevMode) fs.appendFileSync(debugFile, JSON.stringify(item, null, 4) + '\n');
-		}
-		if (result.industry) {
-			result.linkedinUrl = url.replace('/about/', '');
-			return result;
-		}
+		if (!result.industry) return null; // this company or people does not exist
 	}
 
-	return null;
+	return result;
 }
 
 module.exports = {
