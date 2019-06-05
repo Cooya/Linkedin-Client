@@ -32,7 +32,7 @@ describe('Linkedin scraper form tests', () => {
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
 				expect(res.body.error).to.have.string(
-					'Invalid URL provided, must be a people profile URL or a company page URL.'
+					'Invalid URL provided ("toto"), it must be a people profile URL or a company page URL.'
 				);
 				done();
 			});
@@ -40,7 +40,7 @@ describe('Linkedin scraper form tests', () => {
 
 	it('Invalid linkedin URL', (done) => {
 		request(app)
-			.get('/request?linkedinUrl=https://www.linkedin.com/in/toto')
+			.get('/request?linkedinUrl=https://www.linkedin.com/in/tototutu')
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
 				expect(res.body.error).to.have.string('The people/company has not been found.');

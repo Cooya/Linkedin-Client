@@ -102,7 +102,7 @@ async function getCompanyOrPeopleDetails(url) {
 	else if (url.match(/^https:\/\/www.linkedin.com\/company\//)) {
 		url += url[url.length - 1] == '/' ? 'about/' : '/about/';
 		processMethod = processCompanyPage;
-	} else throw new Error('Invalid URL provided, must be a people profile URL or a company page URL.');
+	} else throw new Error(`Invalid URL provided ("${url}"), it must be a people profile URL or a company page URL.`);
 
 	const html = await request({url, jar});
 	const $ = cheerio.load(html);
