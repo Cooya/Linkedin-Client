@@ -57,9 +57,11 @@ function processPeopleProfile(item, result) {
 			field: item.fieldOfStudy,
 			timePeriod: item.timePeriod
 		};
-		delete degree.timePeriod.$type;
-		if (degree.timePeriod.startDate) delete degree.timePeriod.startDate.$type;
-		if (degree.timePeriod.endDate) delete degree.timePeriod.endDate.$type;
+		if (degree.timePeriod) {
+			delete degree.timePeriod.$type;
+			if (degree.timePeriod.startDate) delete degree.timePeriod.startDate.$type;
+			if (degree.timePeriod.endDate) delete degree.timePeriod.endDate.$type;
+		}
 		result.education.push(degree);
 	} else if (item.$type == 'com.linkedin.voyager.identity.profile.Language') {
 		if (result.languages === undefined) result.languages = [];
