@@ -45,9 +45,11 @@ function processPeopleProfile(item, result) {
 			location: item.location,
 			timePeriod: item.timePeriod
 		};
-		delete position.timePeriod.$type;
-		if (position.timePeriod.startDate) delete position.timePeriod.startDate.$type;
-		if (position.timePeriod.endDate) delete position.timePeriod.endDate.$type;
+		if (position.timePeriod) {
+			delete position.timePeriod.$type;
+			if (position.timePeriod.startDate) delete position.timePeriod.startDate.$type;
+			if (position.timePeriod.endDate) delete position.timePeriod.endDate.$type;
+		}
 		result.positions.push(position);
 	} else if (item.$type == 'com.linkedin.voyager.identity.profile.Education') {
 		if (result.education === undefined) result.education = [];
