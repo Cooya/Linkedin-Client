@@ -28,7 +28,8 @@ async function getAccessToken() {
 		response_type: 'code',
 		client_id: config.linkedinApiKey,
 		redirect_uri: config.oauthCallback,
-		state: '12345'
+		state: '12345',
+		scope: 'r_basicprofile'
 	});
 
 	const browser = await pup.runBrowser({headless: config.headless, logger});
@@ -53,16 +54,20 @@ async function getAccessToken() {
 		await page.type('#password', config.linkedinPassword);
 		sleep.sleep(3);
 		await page.click('button[type="submit"]');
-	} else throw new Error('This login page is unknown.');
-	await page.waitForNavigation();
+	}
+	try {
+		await page.waitForNavigation({timeout: 5000});
+	} catch (e) {}
 	await pup.saveCookies(page, config.cookiesFile);
 	sleep.sleep(3);
 
 	// authorize the app if asked
 	if (await page.$('#oauth__auth-form__submit-btn')) {
-		await page.waitForNavigation();
-		sleep.sleep(3);
 		await page.click('#oauth__auth-form__submit-btn');
+		try {
+			await page.waitForNavigation({timeout: 5000});
+		} catch (e) {}
+		sleep.sleep(3);
 	}
 
 	// check if the recapatcha page is displayed
