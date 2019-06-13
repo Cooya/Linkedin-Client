@@ -7,6 +7,7 @@ const config = require('../config');
 const debugFile = './assets/debug.json';
 const jar = buildCookiesJar(config.cookiesFile);
 
+const industries = {};
 const isDevMode = process.env.NODE_ENV == 'dev' || process.env.NODE_ENV == 'development';
 if (isDevMode) fs.writeFileSync(debugFile, '');
 
@@ -76,11 +77,12 @@ function processPeopleProfile(item, result) {
 
 function processCompanyPage(item, result) {
 	if (item.$type == 'com.linkedin.voyager.common.Industry' && item.localizedName)
-		result.industry = item.localizedName;
+		industries[item.entityUrn] = item.localizedName;
 	else if (item.$type == 'com.linkedin.voyager.organization.Company' && item.foundedOn) {
 		result.name = item.name;
 		result.tagline = item.tagline;
 		result.description = item.description;
+		result.industry = industries[item['*companyIndustries'][0]];
 		result.website = item.companyPageUrl;
 		result.companySize =
 			item.staffCountRange.start +
