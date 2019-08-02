@@ -2,7 +2,7 @@ const nodeLinkedin = require('node-linkedin');
 require('@coya/utils');
 
 const oauth = require('./oauth');
-const config = require('../config');
+const config = require('../../config');
 const linkedinApiFields = require('../assets/linkedin_api_fields.json');
 const logger = require('@coya/logger')(config.logging);
 const pup = require('@coya/puppy');

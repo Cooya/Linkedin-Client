@@ -6,7 +6,7 @@ const sleep = require('sleep');
 const url = require('url');
 const util = require('util');
 
-const config = require('../config');
+const config = require('../../config');
 const logger = require('@coya/logger')(config.logging);
 const pup = require('@coya/puppy');
 
