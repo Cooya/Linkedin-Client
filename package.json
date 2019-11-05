@@ -39,7 +39,7 @@
     "bulma": "^0.7.1",
     "csv": "^3.0.2",
     "express": "^4.16.3",
-    "mongoose": "^5.1.2",
+    "mongoose": "^5.7.5",
     "node-linkedin": "^0.5.6",
     "request-promise": "^4.2.2",
     "sleep": "^6.1.0",
