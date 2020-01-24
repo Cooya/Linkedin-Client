@@ -19,12 +19,12 @@ const PeopleToProcess = models.PeopleToProcess;
 		process.exit(1);
 	}
 
-	const browser = await pup.runBrowser({logger});
+	const browser = await pup.runBrowser({ logger });
 	const page = await pup.createPage(browser, config.cookiesFile);
 
 	let peopleDetails;
 	let peopleToProcess = await findNextOnePeopleToProcess();
-	if (!peopleToProcess) peopleToProcess = new PeopleToProcess({linkedinUrl: startingPointUrl, processed: false});
+	if (!peopleToProcess) peopleToProcess = new PeopleToProcess({ linkedinUrl: startingPointUrl, processed: false });
 	let timeToWait;
 	while (peopleToProcess) {
 		logger.info('Retrieving data from the current people to process...');
@@ -56,7 +56,7 @@ const PeopleToProcess = models.PeopleToProcess;
 
 async function findNextOnePeopleToProcess() {
 	logger.info('Fetching the next one people to process...');
-	return await PeopleToProcess.findOne({processed: false});
+	return await PeopleToProcess.findOne({ processed: false });
 }
 
 async function savePeople(peopleDetails) {

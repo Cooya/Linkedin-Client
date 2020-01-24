@@ -6,9 +6,10 @@ const config = require('../../config');
 const server = require('../server');
 
 describe('Linkedin scraper form tests', () => {
-	let app = server.app;
+	let app;
 
 	before(async () => {
+		app = server.app;
 		await Counter.connect(config.dbUrl);
 	});
 
@@ -16,7 +17,7 @@ describe('Linkedin scraper form tests', () => {
 		await Counter.disconnect();
 	});
 
-	it('No URL provided', (done) => {
+	it('No URL provided', done => {
 		request(app)
 			.get('/request')
 			.end((err, res) => {
@@ -26,19 +27,17 @@ describe('Linkedin scraper form tests', () => {
 			});
 	});
 
-	it('Invalid URL', (done) => {
+	it('Invalid URL', done => {
 		request(app)
 			.get('/request?linkedinUrl=toto')
 			.end((err, res) => {
 				expect(res.statusCode).to.equal(200);
-				expect(res.body.error).to.have.string(
-					'Invalid URL provided ("toto"), it must be a people profile URL or a company page URL.'
-				);
+				expect(res.body.error).to.have.string('Invalid URL provided ("toto"), it must be a people profile URL or a company page URL.');
 				done();
 			});
 	});
 
-	it('Invalid linkedin URL', (done) => {
+	it('Invalid linkedin URL', done => {
 		request(app)
 			.get('/request?linkedinUrl=https://www.linkedin.com/in/tototutu')
 			.end((err, res) => {
@@ -48,7 +47,7 @@ describe('Linkedin scraper form tests', () => {
 			});
 	});
 
-	it('People profile without company', (done) => {
+	it('People profile without company', done => {
 		request(app)
 			.get('/request?linkedinUrl=https://www.linkedin.com/in/joana-ferraz-3388568b/')
 			.end((err, res) => {
@@ -59,7 +58,7 @@ describe('Linkedin scraper form tests', () => {
 			});
 	});
 
-	it('People profile with company', (done) => {
+	it('People profile with company', done => {
 		request(app)
 			.get('/request?linkedinUrl=https://www.linkedin.com/in/alix-vandame/')
 			.end((err, res) => {
@@ -71,16 +70,16 @@ describe('Linkedin scraper form tests', () => {
 				expect(res.body.result['summary'].length).to.be.not.equal(0);
 				expect(res.body.result['location']).to.equal('Paris Area, France');
 				expect(res.body.result['industry']).to.equal('Internet');
-				expect(res.body.result['education'].length).to.equal(3);
+				expect(res.body.result['education'].length).to.equal(4);
 				expect(res.body.result['languages'].length).to.equal(3);
 				expect(res.body.result['positions'].length).to.equal(6);
-				expect(res.body.result['skills'].length).to.equal(4);
+				expect(res.body.result['skills'].length).to.equal(20);
 				expect(res.body.result['linkedinUrl']).to.equal('https://www.linkedin.com/in/alix-vandame/');
 				done();
 			});
 	});
 
-	it('Private people profile', (done) => {
+	it('Private people profile', done => {
 		request(app)
 			.get('/request?linkedinUrl=https://www.linkedin.com/in/benoitgantaume/')
 			.end((err, res) => {
@@ -92,7 +91,7 @@ describe('Linkedin scraper form tests', () => {
 			});
 	});
 
-	it('Company page', (done) => {
+	it('Company page', done => {
 		const url = 'https://www.linkedin.com/company/talent-io';
 		request(app)
 			.get('/request?linkedinUrl=' + url)
@@ -108,7 +107,7 @@ describe('Linkedin scraper form tests', () => {
 				expect(res.body.result['companySize']).to.equal('51-200 employees');
 				expect(res.body.result['headquarters']).to.deep.equal({
 					country: 'FR',
-					geographicArea: '&#xCE;le-de-France',
+					geographicArea: 'Île-de-France',
 					city: 'Paris',
 					line1: '18, Rue de Londres'
 				});
@@ -122,7 +121,7 @@ describe('Linkedin scraper form tests', () => {
 			});
 	});
 
-	it('Company page with a lot of followers and members on Linkedin', (done) => {
+	it('Company page with a lot of followers and members on Linkedin', done => {
 		const url = 'https://www.linkedin.com/company/microsoft';
 		request(app)
 			.get('/request?linkedinUrl=' + url)

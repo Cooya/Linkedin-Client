@@ -2,14 +2,14 @@ const fs = require('fs');
 const request = require('request-promise');
 const util = require('util');
 
-const config = require('../config');
+const config = require('../../config');
 const logger = require('@coya/logger')(config.logging);
 const pup = require('@coya/puppy');
 
 const writeFile = util.promisify(fs.writeFile);
 
 (async () => {
-	const browser = await pup.runBrowser({headless: false, logger});
+	const browser = await pup.runBrowser({ headless: false, logger });
 	const page = await pup.createPage(browser, config.cookiesFile);
 
 	try {
@@ -51,7 +51,7 @@ async function getToken(page, creds) {
 		const allowButton = await page.$('#oauth__auth-form__submit-btn');
 		if (!allowButton) throw Error('The authorization button is not present on the page.');
 		await page.click('#oauth__auth-form__submit-btn');
-		await page.waitForNavigation({timeout: 60000});
+		await page.waitForNavigation({ timeout: 60000 });
 
 		// check the redirection
 		url = await page.url();

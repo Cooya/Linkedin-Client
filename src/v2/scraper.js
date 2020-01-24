@@ -42,7 +42,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 		if (options.forcePeopleScraping) {
 			// force people profile scraping instead of using the API
 			if (!page) {
-				browser = await pup.runBrowser({headless: config.headless, logger});
+				browser = await pup.runBrowser({ headless: config.headless, logger });
 				page = await pup.createPage(browser, config.cookiesFile);
 			}
 			peopleDetails = await scrapPeopleProfile(page, linkedinUrl);
@@ -58,7 +58,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 			peopleDetails['isPrivateProfile'] = peopleDetails['id'] == 'private';
 			if (peopleDetails['isPrivateProfile'] || linkedinApiInternalError) {
 				if (!page) {
-					browser = await pup.runBrowser({headless: config.headless, logger});
+					browser = await pup.runBrowser({ headless: config.headless, logger });
 					page = await pup.createPage(browser, config.cookiesFile);
 				}
 				peopleDetails = await scrapPeopleProfile(page, linkedinUrl);
@@ -85,7 +85,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 	}
 
 	if (!page) {
-		browser = await pup.runBrowser({headless: config.headless, logger});
+		browser = await pup.runBrowser({ headless: config.headless, logger });
 		page = await pup.createPage(browser, config.cookiesFile);
 	}
 
@@ -96,7 +96,7 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 	} catch (e) {
 		// I was trying to understand why I cannot log in to Linkedin from my VPS server
 		logger.error(page.url());
-		await page.screenshot({path: 'error.png'});
+		await page.screenshot({ path: 'error.png' });
 		throw e;
 	}
 
@@ -120,8 +120,8 @@ async function getPeopleData(profileUrl) {
 
 async function scrapPeopleProfile(page, url = null) {
 	if (url) {
-		await pup.goTo(page, url, {ignoreDestination: true});
-		await logIn(page, config.linkedinEmail, config.linkedinPassword, {redirectionUrl: url});
+		await pup.goTo(page, url, { ignoreDestination: true });
+		await logIn(page, config.linkedinEmail, config.linkedinPassword, { redirectionUrl: url });
 	}
 	await page.waitForSelector('div.profile-detail > div.pv-deferred-area ');
 	const toggleButton = await page.$('pv-top-card-section__summary-toggle-button');
@@ -174,15 +174,8 @@ async function scrapPeopleProfile(page, url = null) {
 				.text()
 				.trim(),
 			currentCompany: experiences.length ? experiences[0] : null,
-			school:
-				$('a.pv-top-card-v2-section__link-education span')
-					.text()
-					.trim() || null,
-			connectionsNumber: parseInt(
-				$('span.pv-top-card-v2-section__connections')
-					.text()
-					.match(/[0-9]+/)[0]
-			),
+			school: $('a.pv-top-card-v2-section__link-education span').text().trim() || null,
+			connectionsNumber: parseInt($('span.pv-top-card-v2-section__connections').text().match(/[0-9]+/)[0]),
 			positions: experiences,
 			relatedPeople: relatedPeople
 		};
@@ -193,8 +186,8 @@ async function scrapPeopleProfile(page, url = null) {
 
 async function scrapCompanyPage(page, url = null) {
 	if (url) {
-		await pup.goTo(page, url, {ignoreDestination: true});
-		await logIn(page, config.linkedinEmail, config.linkedinPassword, {redirectionUrl: url});
+		await pup.goTo(page, url, { ignoreDestination: true });
+		await logIn(page, config.linkedinEmail, config.linkedinPassword, { redirectionUrl: url });
 	}
 	await page.waitForSelector('a[data-control-name="page_member_main_nav_about_tab"]');
 
@@ -208,7 +201,7 @@ async function scrapCompanyPage(page, url = null) {
 		const companyDetails = {};
 		const keys = $('dl > dt').get();
 		const values = $('dl > dd').get();
-		let value;
+		let value, key;
 		for (let i = 0; i < keys.length; ++i) {
 			key = keys[i].textContent.trim();
 			value = values[i].textContent.trim();
@@ -220,27 +213,10 @@ async function scrapCompanyPage(page, url = null) {
 			else if (key == 'Founded') companyDetails['foundedYear'] = parseInt(value);
 			else if (key == 'Specialties') companyDetails['specialties'] = value;
 		}
-		companyDetails['name'] = $('h1.org-top-card-summary__title')
-			.text()
-			.trim();
-		companyDetails['description'] =
-			$('div.org-grid__core-rail--no-margin-left > section > p')
-				.text()
-				.trim() || null;
-		companyDetails['followers'] = parseInt(
-			$('div.org-top-card-summary__follower-count')
-				.text()
-				.replace('followers', '')
-				.replace(',', '')
-				.trim()
-		);
-		companyDetails['membersOnLinkedin'] = parseInt(
-			$('a[data-control-name="topcard_see_all_employees"] > span')
-				.text()
-				.match(/See all ([0-9,]+) employees on LinkedIn/)[1]
-				.replace(',', '')
-				.trim()
-		);
+		companyDetails['name'] = $('h1.org-top-card-summary__title').text().trim();
+		companyDetails['description'] = $('div.org-grid__core-rail--no-margin-left > section > p').text().trim() || null;
+		companyDetails['followers'] = parseInt($('div.org-top-card-summary__follower-count').text().replace('followers', '').replace(',', '').trim());
+		companyDetails['membersOnLinkedin'] = parseInt($('a[data-control-name="topcard_see_all_employees"] > span').text().match(/See all ([0-9,]+) employees on LinkedIn/)[1].replace(',', '').trim());
 		return companyDetails;
 	});
 	companyDetails['linkedinUrl'] = page.url().replace('/about/', '');
@@ -272,12 +248,12 @@ async function logIn(page, login, password, options = {}) {
 		await loginButton.click(); // either on the button at the top right corner either on the button in the redirection form
 		try {
 			// traditional login form
-			await page.waitFor('#login-email', {timeout: 2000});
+			await page.waitFor('#login-email', { timeout: 2000 });
 		} catch (e) {
 			// forced redirection to login form because we are not logged
 			await page.waitForNavigation();
 		}
-		await page.waitFor('#login-email, #username', {timeout: 2000});
+		await page.waitFor('#login-email, #username', { timeout: 2000 });
 		await page.waitFor(2000);
 		await page.type('#login-email, #username', login);
 		await page.type('#login-password, #password', password);
@@ -288,5 +264,5 @@ async function logIn(page, login, password, options = {}) {
 	}
 
 	if (options.redirectionUrl && page.url() != options.redirectionUrl)
-		await pup.goTo(page, options.redirectionUrl, {ignoreDestination: true});
+		await pup.goTo(page, options.redirectionUrl, { ignoreDestination: true });
 }
