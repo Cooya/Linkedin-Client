@@ -1,4 +1,7 @@
+# **IMPORTANT NOTICE : BECAUSE OF MANY CHANGES IN LINKEDIN SOURCE CODE, THIS PROJECT IS NOT WORKING ANYMORE.**
+
 # Linkedin API & scraper
+
 This service allows to retrieve data about people or company on [Linkedin](https://www.linkedin.com), through the official Linkedin API, or when it is not possible, through a web scraper using [Puppeteer](https://github.com/GoogleChrome/puppeteer).
 
 ![app screenshot](https://cooya.fr/images/screenshots/linkedin-company.png)
