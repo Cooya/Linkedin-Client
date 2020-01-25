@@ -5,18 +5,19 @@ const Entities = require('html-entities').XmlEntities;
  
 const config = require('../config');
 const debugFile = './assets/debug.json';
-const jar = buildCookiesJar(config.cookiesFile);
-const logger = require('@coya/logger')(config.logging);
+const logger = require('@coya/logger')();
 
 const entities = new Entities();
+const jar = buildCookiesJar();
 const industries = {};
 const followingItems = {};
 
-function buildCookiesJar(cookiesFile) {
-	const cookies = require(cookiesFile);
+function buildCookiesJar() {
+	if(!config.cookie)
+		throw new Error('The Linkedin cookie is required.');
+
 	const jar = request.jar();
-	for (let cookie of cookies)
-		jar.setCookie(request.cookie(cookie.name + '=' + cookie.value), 'https://www.linkedin.com');
+	jar.setCookie(request.cookie(`li_at=${config.cookie}`), 'https://www.linkedin.com');
 	return jar;
 }
 

@@ -2,8 +2,8 @@ const fs = require('fs');
 const request = require('request-promise');
 const util = require('util');
 
-const config = require('../../config');
-const logger = require('@coya/logger')(config.logging);
+const config = require('../../../config');
+const logger = require('@coya/logger')();
 const pup = require('@coya/puppy');
 
 const writeFile = util.promisify(fs.writeFile);

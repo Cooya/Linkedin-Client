@@ -4,7 +4,7 @@ const request = require('request');
 const util = require('util');
 
 const config = require('../../config');
-const logger = require('@coya/logger')(config.logging);
+const logger = require('@coya/logger')();
 
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);

@@ -8,8 +8,10 @@
     "start": "NODE_ENV=dev nodemon --ignore 'assets/*' src/server.js",
     "forever": "NODE_ENV=production forever --id linkedin start src/server.js",
     "build": "webpack --mode production",
-    "dev-build": "webpack --watch=true --mode development",
-    "manual-login": "node scripts/manual_login.js"
+    "dev-build": "webpack --watch=true --mode development"
+  },
+  "bin": {
+    "linkedin-scrap": "./src/cli.js"
   },
   "author": "Coya",
   "license": "ISC",
@@ -25,6 +27,7 @@
     "react": "^16.3.2",
     "react-dom": "^16.3.2",
     "sass-loader": "^7.0.1",
+    "simple-mock": "^0.8.0",
     "style-loader": "^0.21.0",
     "supertest": "^3.1.0",
     "webpack": "^4.6.0",
@@ -35,6 +38,7 @@
     "@coya/logger": "0.0.5",
     "@coya/puppy": "^0.1.1",
     "bulma": "^0.7.1",
+    "cheerio": "^1.0.0-rc.3",
     "express": "^4.16.3",
     "html-entities": "^1.2.1",
     "request-promise": "^4.2.2",

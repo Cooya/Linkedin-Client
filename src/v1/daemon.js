@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 const config = require('../../config');
 const linkedin = require('../linkedin');
-const logger = require('@coya/logger')(config.logging);
+const logger = require('@coya/logger')();
 const models = require('./models');
 const pup = require('@coya/puppy');
 

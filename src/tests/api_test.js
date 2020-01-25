@@ -1,20 +1,20 @@
 const Counter = require('@coya/counter').Counter;
 const expect = require('chai').expect;
 const request = require('supertest');
+const simpleMock = require('simple-mock');
 
-const config = require('../../config');
-const server = require('../server');
+const { createApp } = require('../server');
 
 describe('Linkedin scraper form tests', () => {
 	let app;
 
 	before(async () => {
-		app = server.app;
-		await Counter.connect(config.dbUrl);
+		app = createApp();
+		simpleMock.mock(Counter, 'inc', () => {});
 	});
 
 	after(async () => {
-		await Counter.disconnect();
+		simpleMock.restore(Counter, 'inc');
 	});
 
 	it('No URL provided', done => {

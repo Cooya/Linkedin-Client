@@ -7,7 +7,7 @@ const url = require('url');
 const util = require('util');
 
 const config = require('../../config');
-const logger = require('@coya/logger')(config.logging);
+const logger = require('@coya/logger')();
 const pup = require('@coya/puppy');
 
 const fileExists = util.promisify(fs.access);
