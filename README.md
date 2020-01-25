@@ -13,7 +13,7 @@ You can try out the tool on my personal server [here](https://linkedin.cooya.fr)
 - The Linkedin API v1 is now deprecated and the v2 is not really usable so, in this third version, there is no more use of the API and I completely skipped the use of web browser, it is a simple HTTP request and [Cheerio](https://github.com/cheeriojs/cheerio) does the job.
 
 ## Installation
-Want to try running it on you own ? You will need your Linkedin cookie called "li_at".
+Want to try running it on you own ? You will need your Linkedin cookie called "**li_at**". This way, requests will be sent on your behalf.
 ```bash
 git clone https://github.com/Cooya/Linkedin.git linkedin
 cd linkedin
@@ -24,7 +24,7 @@ touch config.js
 Complete the configuration file "config.js" as follows :
 ```js
 module.exports = {
-	cookie: 'YOUR_LINKEDIN_COOKIE'
+    cookie: 'YOUR_LINKEDIN_COOKIE'
 };
 ```
 
