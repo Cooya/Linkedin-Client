@@ -17,7 +17,7 @@ Want to try running it on you own ? You will need your Linkedin cookie called "l
 ```bash
 git clone https://github.com/Cooya/Linkedin.git linkedin
 cd linkedin
-npm i
+npm install --production
 touch config.js
 ```
 
