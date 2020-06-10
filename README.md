@@ -30,7 +30,7 @@ module.exports = {
 };
 ```
 
-## Execution
+## CLI usage
 If you want to scrap people details :
 ```bash
 node src/cli.js https://www.linkedin.com/in/williamhgates/
