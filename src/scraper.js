@@ -85,7 +85,7 @@ function processCompanyPage(item, result) {
 		industries[item.entityUrn] = item.localizedName;
 	else if (item.$type == 'com.linkedin.voyager.common.FollowingInfo')
 		followingItems[item.entityUrn] = item.followerCount;
-	else if (item.$type == 'com.linkedin.voyager.organization.Company' && item.tagline) {
+	else if (item.$type == 'com.linkedin.voyager.organization.Company' && (item.tagline || item.tagline === null) {
 		result.name = item.name;
 		result.tagline = item.tagline;
 		result.description = item.description;
