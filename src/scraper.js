@@ -85,11 +85,12 @@ function processCompanyPage(item, result) {
 		industries[item.entityUrn] = item.localizedName;
 	else if (item.$type == 'com.linkedin.voyager.common.FollowingInfo')
 		followingItems[item.entityUrn] = item.followerCount;
-	else if (item.$type == 'com.linkedin.voyager.organization.Company' && (item.tagline || item.tagline === null) {
+	else if (item.$type == 'com.linkedin.voyager.organization.Company' && item.staffCount) {
 		result.name = item.name;
 		result.tagline = item.tagline;
 		result.description = item.description;
 		result.industry = industries[item['*companyIndustries'][0]];
+		result.type = item.companyType ? item.companyType.localizedName : null,
 		result.website = item.companyPageUrl;
 		result.companySize = item.staffCountRange.start + (item.staffCountRange.end ? '-' + item.staffCountRange.end : '+') + ' employees';
 		result.membersOnLinkedin = item.staffCount;

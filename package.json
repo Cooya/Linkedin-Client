@@ -37,7 +37,7 @@
     "whatwg-fetch": "^2.0.4"
   },
   "dependencies": {
-    "@coya/counter": "^0.1.3",
+    "@coya/counter": "^0.1.7",
     "@coya/logger": "0.0.5",
     "cheerio": "^1.0.0-rc.3",
     "express": "^4.16.3",
