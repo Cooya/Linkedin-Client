@@ -5,7 +5,6 @@ const Entities = require('html-entities').XmlEntities;
  
 const config = require('../config');
 const debugFile = './assets/debug.json';
-const logger = require('@coya/logger')();
 
 const entities = new Entities();
 const jar = buildCookiesJar();
@@ -114,7 +113,6 @@ async function getCompanyOrPeopleDetails(url) {
 	if(process.env.NODE_ENV == 'dev')
 		fs.writeFileSync(debugFile, '');
 
-	logger.info(`Sending request to ${url}...`);
 	const html = await request({ url, jar });
 	const $ = cheerio.load(html);
 	let data, result = { linkedinUrl: url.replace('/about/', '') };

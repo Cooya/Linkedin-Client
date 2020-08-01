@@ -1,10 +1,9 @@
-const { Counter, countVisitors } = require('@coya/counter');
 const express = require('express');
+const logger = require('@coya/logger')();
 const path = require('path');
 
 const config = require('../config');
 const scraper = require('./scraper');
-const logger = require('@coya/logger')();
 
 // configuration variables
 const maximumShotsNumber = 10;
@@ -14,7 +13,7 @@ const webAssetsFolder = path.resolve(__dirname, '../web/assets');
 
 function createApp() {
 	const app = express();
-	app.use(countVisitors);
+	app.logger = logger; // this way, it can be silented in tests
 	app.use('/assets', express.static(webAssetsFolder));
 
 	// web app
@@ -26,16 +25,11 @@ function createApp() {
 	app.get('/request', saveIpAddress, async (req, res) => {
 		logger.info(`Request received from IP address = ${req.ipAddress} with linkedin URL = ${req.query.linkedinUrl}`);
 
-		// API requests counters
-		if(config.dbUrl) {
-			await Counter.inc('linkedin-requests-global');
-			await Counter.inc('linkedin-requests', { dailyCounter: true });
-		}
-
 		if (!req.query.linkedinUrl)
 			return res.json({ error: 'A linkedin URL is required.' });
 
 		try {
+			logger.info(`Sending request to ${req.query.linkedinUrl}...`);
 			const result = await scraper.getCompanyOrPeopleDetails(req.query.linkedinUrl);
 			if (!result)
 				res.json({ error: 'The people/company has not been found.', result: null });
@@ -51,19 +45,10 @@ function createApp() {
 	return app;
 }
 
-if (process.env.NODE_ENV == 'test')
+if (process.env.NODE_ENV === 'test')
 	module.exports = { createApp };
 else {
 	(async () => {
-		if(config.dbUrl)
-			try {
-				await Counter.connect(config.dbUrl);
-			} catch (e) {
-				logger.error(e);
-				process.exit(1);
-			}
-
-		// run the Express server
 		const app = createApp();
 		app.listen(serverPort);
 		logger.info(`Server started on "http://localhost:${serverPort}", waiting for requests...`);
