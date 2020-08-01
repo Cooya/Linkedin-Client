@@ -1,6 +1,6 @@
 {
   "name": "linkedin-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Linkedin HTTP client to retrieve data about individuals or companies",
   "main": "index.js",
   "scripts": {
