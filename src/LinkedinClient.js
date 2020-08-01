@@ -2,24 +2,62 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const request = require('request-promise');
 const Entities = require('html-entities').XmlEntities;
- 
-const config = require('../config');
-const debugFile = './assets/debug.json';
 
-const entities = new Entities();
-const jar = buildCookiesJar();
+const debugFile = './assets/debug.json';
 const industries = {};
 const followingItems = {};
 
-function buildCookiesJar() {
-	if(!config.cookie)
-		throw new Error('The Linkedin cookie is required.');
+module.exports = class LinkedinClient {
+	constructor(cookie) {
+		if(!cookie)
+			throw new Error('The Linkedin cookie is required.');
 
-	const jar = request.jar();
-	jar.setCookie(request.cookie(`li_at=${config.cookie}`), 'https://www.linkedin.com');
-	return jar;
-}
+		this.entities = new Entities();
+		this.jar = request.jar();
+		this.jar.setCookie(request.cookie(`li_at=${cookie}`), 'https://www.linkedin.com');
+	}
+	
+	async fetch(url) {
+		let processMethod;
+		if (url.match(/^https:\/\/www.linkedin.com\/in\//)) processMethod = processPeopleProfile;
+		else if (url.match(/^https:\/\/www.linkedin.com\/company\//)) {
+			url += url[url.length - 1] == '/' ? 'about/' : '/about/';
+			processMethod = processCompanyPage;
+		} else throw new Error(`Invalid URL provided ("${url}"), it must be a people profile URL or a company page URL.`);
+	
+		if(process.env.NODE_ENV == 'dev')
+			fs.writeFileSync(debugFile, '');
+	
+		const html = await request({ url, jar: this.jar });
+		const $ = cheerio.load(html);
+		let data, result = { linkedinUrl: url.replace('/about/', '') };
+		while (!result.name && !result.firstName) {
+			// this loop allows to fix a bug with random missing <code> tags
+			for (let elt of $('code').get()) {
+				try {
+					data = JSON.parse(this.entities.decode($(elt).html()));
+				} catch (e) {
+					continue;
+				}
+				if (!data.included)
+					continue;
+				for (let item of data.included) {
+					processMethod(item, result);
+					if (process.env.NODE_ENV == 'dev')
+						fs.appendFileSync(debugFile, JSON.stringify(item, null, 4) + '\n');
+				}
+			}
+	
+			// this company or people does not exist
+			if (!result.firstName && !result.name)
+				return null;
+		}
+	
+		return result;
+	}
+};
 
+// private method
 function processPeopleProfile(item, result) {
 	if (item.$type == 'com.linkedin.voyager.dash.common.Industry' && item.name)
 		industries[item.entityUrn] = item.name;
@@ -79,6 +117,7 @@ function processPeopleProfile(item, result) {
 	}
 }
 
+// private method
 function processCompanyPage(item, result) {
 	if (item.$type == 'com.linkedin.voyager.common.Industry')
 		industries[item.entityUrn] = item.localizedName;
@@ -101,46 +140,3 @@ function processCompanyPage(item, result) {
 		result.followers = followingItems[item[['*followingInfo']]];
 	}
 }
-
-async function getCompanyOrPeopleDetails(url) {
-	let processMethod;
-	if (url.match(/^https:\/\/www.linkedin.com\/in\//)) processMethod = processPeopleProfile;
-	else if (url.match(/^https:\/\/www.linkedin.com\/company\//)) {
-		url += url[url.length - 1] == '/' ? 'about/' : '/about/';
-		processMethod = processCompanyPage;
-	} else throw new Error(`Invalid URL provided ("${url}"), it must be a people profile URL or a company page URL.`);
-
-	if(process.env.NODE_ENV == 'dev')
-		fs.writeFileSync(debugFile, '');
-
-	const html = await request({ url, jar });
-	const $ = cheerio.load(html);
-	let data, result = { linkedinUrl: url.replace('/about/', '') };
-	while (!result.name && !result.firstName) {
-		// this loop allows to fix a bug with random missing <code> tags
-		for (let elt of $('code').get()) {
-			try {
-				data = JSON.parse(entities.decode($(elt).html()));
-			} catch (e) {
-				continue;
-			}
-			if (!data.included)
-				continue;
-			for (let item of data.included) {
-				processMethod(item, result);
-				if (process.env.NODE_ENV == 'dev')
-					fs.appendFileSync(debugFile, JSON.stringify(item, null, 4) + '\n');
-			}
-		}
-
-		// this company or people does not exist
-		if (!result.firstName && !result.name)
-			return null;
-	}
-
-	return result;
-}
-
-module.exports = {
-	getCompanyOrPeopleDetails
-};

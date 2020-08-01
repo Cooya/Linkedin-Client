@@ -76,7 +76,7 @@ class LinkedinForm extends React.Component {
 				<div className="hero-body">
 					<div className="container has-text-centered">
 						<h1 className="title">
-							Linkedin Scraper Demo
+							Linkedin Client Demo
                         </h1>
 						<h2 className="subtitle">
 							Data scraping tool prototype
@@ -93,8 +93,8 @@ class LinkedinForm extends React.Component {
 						The tool does not use the LinkedIn API or any headless web browser, a simple HTTP request is sent and followed by some HTML parsing.
 						As of now, you can :
 						<ul>
-							<li>scrap people details from an individual profile</li>
-							<li>scrap company details from a company page</li>
+							<li>retrieve people details from an individual profile</li>
+							<li>retrieve company details from a company page</li>
 							<li>guess people's email address through a third-party API (not available in this demonstration)</li>
 						</ul>
 					</p>

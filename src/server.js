@@ -3,7 +3,7 @@ const logger = require('@coya/logger')();
 const path = require('path');
 
 const config = require('../config');
-const scraper = require('./scraper');
+const LinkedinClient = require('./LinkedinClient');
 
 // configuration variables
 const maximumShotsNumber = 10;
@@ -12,6 +12,8 @@ const webAppFile = path.resolve(__dirname, '../web/index.html');
 const webAssetsFolder = path.resolve(__dirname, '../web/assets');
 
 function createApp() {
+	const linkedinClient = new LinkedinClient(config.cookie);
+
 	const app = express();
 	app.logger = logger; // this way, it can be silented in tests
 	app.use('/assets', express.static(webAssetsFolder));
@@ -30,7 +32,7 @@ function createApp() {
 
 		try {
 			logger.info(`Sending request to ${req.query.linkedinUrl}...`);
-			const result = await scraper.getCompanyOrPeopleDetails(req.query.linkedinUrl);
+			const result = await linkedinClient.fetch(req.query.linkedinUrl);
 			if (!result)
 				res.json({ error: 'The people/company has not been found.', result: null });
 			else
