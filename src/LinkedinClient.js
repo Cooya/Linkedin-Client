@@ -1,7 +1,7 @@
 const cheerio = require('cheerio');
 const fs = require('fs');
-const request = require('request-promise');
 const Entities = require('html-entities').XmlEntities;
+const request = require('node-fetch');
 
 const debugFile = './assets/debug.json';
 const industries = {};
@@ -13,8 +13,7 @@ module.exports = class LinkedinClient {
 			throw new Error('The Linkedin cookie is required.');
 
 		this.entities = new Entities();
-		this.jar = request.jar();
-		this.jar.setCookie(request.cookie(`li_at=${cookie}`), 'https://www.linkedin.com');
+		this.cookie = cookie;
 	}
 	
 	async fetch(url) {
@@ -28,7 +27,8 @@ module.exports = class LinkedinClient {
 		if(process.env.NODE_ENV == 'dev')
 			fs.writeFileSync(debugFile, '');
 	
-		const html = await request({ url, jar: this.jar });
+		const res = await request(url, { headers: { Cookie: `li_at=${this.cookie}` } });
+		const html = await res.text();
 		const $ = cheerio.load(html);
 		let data, result = { linkedinUrl: url.replace('/about/', '') };
 		while (!result.name && !result.firstName) {
