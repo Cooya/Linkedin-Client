@@ -16,12 +16,14 @@ npm i linkedin-client
 
 ## Usage
 
+You need your Linkedin cookie called "**li_at**". This way, requests will be sent on your behalf.
+
 ```js
-const linkedinClient = require('linkedin-client');
+const LinkedinClient = require('linkedin-client');
 
 (async () => {
   const client = new LinkedinClient('YOUR_LINKEDIN_COOKIE');
-  const data = await LinkedinClient.get('https://www.linkedin.com/in/williamhgates/');
+  const data = await client.fetch('https://www.linkedin.com/in/williamhgates/');
   console.log(data);
 })();
 ```
@@ -48,7 +50,7 @@ npm test
 
 ## Web interface
 
-Want to try running it on you own ? You will need your Linkedin cookie called "**li_at**". This way, requests will be sent on your behalf.
+If you want to run the web interface on you own, you can do as follows :
 
 ```bash
 git clone https://github.com/Cooya/Linkedin-Client.git linkedin-client
