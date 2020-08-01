@@ -1,5 +1,7 @@
 # Linkedin Client
 
+[![npm version](https://badge.fury.io/js/linkedin-client.svg)](https://badge.fury.io/js/linkedin-client)
+
 This package allows to fetch data about individuals or companies on [Linkedin](https://www.linkedin.com).
 
 ![app screenshot](https://cooya.fr/images/screenshots/linkedin-company.png)

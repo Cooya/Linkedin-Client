@@ -46,7 +46,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Cooya/Linkedin.git"
+    "url": "https://github.com/Cooya/Linkedin-Client.git"
   },
   "keywords": ["linkedin", "client", "scrap", "scraper", "crawl", "crawler", "leads", "api"]
 }
