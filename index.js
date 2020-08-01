@@ -1,1 +1,1 @@
-module.exports = { get: require('./src/LinkedinClient').getCompanyOrPeopleDetails };
+module.exports = require('./src/LinkedinClient');
