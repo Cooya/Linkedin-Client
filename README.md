@@ -15,6 +15,8 @@ npm i linkedin-client
 ## Usage
 
 You need your Linkedin cookie called "**li_at**". This way, requests will be sent on your behalf.
+To find you li_at session cookie for linkedin, please see video for instructions:
+https://skwid-prod.s3.eu-west-3.amazonaws.com/resources/linkedin-authentication.mp4
 
 ```js
 const LinkedinClient = require('linkedin-client');
