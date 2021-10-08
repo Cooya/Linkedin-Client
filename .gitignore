@@ -2,3 +2,5 @@ node_modules/
 web/assets/bundle.js
 assets/debug.json
 config.js
+.env
+.env.*
