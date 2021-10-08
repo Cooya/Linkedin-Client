@@ -8,7 +8,11 @@
     "start": "NODE_ENV=dev nodemon --ignore 'assets/*' src/server.js",
     "forever": "NODE_ENV=production forever --id linkedin start src/server.js",
     "build": "webpack --mode production",
-    "dev-build": "webpack --watch=true --mode development"
+    "dev-build": "webpack --watch=true --mode development",
+    "lint": "eslint ./src --ext .js",
+    "lint:fix": "eslint ./src --ext .js --fix",
+    "prettier": "prettier './**/*.js'",
+    "prettier:write": "prettier --write './**/*.js'"
   },
   "bin": {
     "linkedin-client": "./src/cli.js"
@@ -23,10 +27,12 @@
     "bulma": "^0.7.1",
     "chai": "^4.1.2",
     "css-loader": "^3.4.2",
+    "eslint": "^7.32.0",
     "express": "^4.17.1",
     "mocha": "^9.1.2",
     "node-sass": "^6.0.1",
     "nodemon": "^2.0.4",
+    "prettier": "^2.4.1",
     "react": "^16.3.2",
     "react-dom": "^16.3.2",
     "sass-loader": "^7.0.1",
@@ -40,7 +46,6 @@
   "dependencies": {
     "@coya/logger": "0.0.5",
     "cheerio": "^1.0.0-rc.3",
-    "eslint": "^7.32.0",
     "html-entities": "^1.2.1",
     "node-fetch": "^2.6.0"
   },
