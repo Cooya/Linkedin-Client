@@ -32,9 +32,9 @@ async function getAccessToken() {
 		scope: 'r_basicprofile'
 	});
 
-	const browser = await pup.runBrowser({headless: config.headless, logger});
+	const browser = await pup.runBrowser({ headless: config.headless, logger });
 	const page = await pup.createPage(browser, config.cookiesFile);
-	await pup.goTo(page, authorizationURL + '?' + params, {ignoreDestination: true});
+	await pup.goTo(page, authorizationURL + '?' + params, { ignoreDestination: true });
 	sleep.sleep(3);
 
 	// submit the form if there is a form
@@ -56,7 +56,7 @@ async function getAccessToken() {
 		await page.click('button[type="submit"]');
 	}
 	try {
-		await page.waitForNavigation({timeout: 5000});
+		await page.waitForNavigation({ timeout: 5000 });
 	} catch (e) {}
 	await pup.saveCookies(page, config.cookiesFile);
 	sleep.sleep(3);
@@ -65,7 +65,7 @@ async function getAccessToken() {
 	if (await page.$('#oauth__auth-form__submit-btn')) {
 		await page.click('#oauth__auth-form__submit-btn');
 		try {
-			await page.waitForNavigation({timeout: 5000});
+			await page.waitForNavigation({ timeout: 5000 });
 		} catch (e) {}
 		sleep.sleep(3);
 	}
@@ -98,7 +98,7 @@ async function getAccessToken() {
 	return res;
 }
 
-if (process.env.NODE_ENV == 'oauth') {
+if (process.env.NODE_ENV === 'oauth') {
 	(async () => {
 		try {
 			const accessToken = await getAccessToken();

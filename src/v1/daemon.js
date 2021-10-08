@@ -24,7 +24,8 @@ const PeopleToProcess = models.PeopleToProcess;
 
 	let peopleDetails;
 	let peopleToProcess = await findNextOnePeopleToProcess();
-	if (!peopleToProcess) peopleToProcess = new PeopleToProcess({ linkedinUrl: startingPointUrl, processed: false });
+	if (!peopleToProcess)
+		peopleToProcess = new PeopleToProcess({ linkedinUrl: startingPointUrl, processed: false });
 	let timeToWait;
 	while (peopleToProcess) {
 		logger.info('Retrieving data from the current people to process...');
@@ -35,7 +36,8 @@ const PeopleToProcess = models.PeopleToProcess;
 			});
 			logger.info(peopleDetails);
 		} catch (e) {
-			if (e.message.indexOf('Page crashed!') != -1) continue;
+			if (e.message.indexOf('Page crashed!') !== -1)
+				continue;
 			logger.error(e);
 			process.exit(1);
 		}
@@ -79,7 +81,7 @@ async function savePeopleToProcess(linkedinUrl) {
 			processed: false
 		}).save();
 	} catch (e) {
-		if (e.message.indexOf('E11000 duplicate key error collection') == -1) {
+		if (e.message.indexOf('E11000 duplicate key error collection') === -1) {
 			logger.error(e);
 			process.exit(1);
 		}

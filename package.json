@@ -4,7 +4,7 @@
   "description": "Linkedin HTTP client to retrieve data about individuals or companies",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_ENV=test mocha src/tests --timeout 60000 --bail",
+    "test": "eslint ./src && NODE_ENV=test mocha src/tests --timeout 60000 --bail",
     "start": "NODE_ENV=dev nodemon --ignore 'assets/*' src/server.js",
     "forever": "NODE_ENV=production forever --id linkedin start src/server.js",
     "build": "webpack --mode production",

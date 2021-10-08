@@ -50,12 +50,12 @@ async function getCompanyOrPeopleDetails(linkedinUrl, options = {}) {
 			// get people data through API
 			peopleDetails = await getPeopleData(linkedinUrl);
 			if (peopleDetails['message']) {
-				linkedinApiInternalError = peopleDetails['message'] == 'Internal API server error';
+				linkedinApiInternalError = peopleDetails['message'] === 'Internal API server error';
 				if (!linkedinApiInternalError) throw new Error(peopleDetails['message']); // the linkedin URL is invalid
 			}
 
 			// get people data through web scraper if the people profile is private
-			peopleDetails['isPrivateProfile'] = peopleDetails['id'] == 'private';
+			peopleDetails['isPrivateProfile'] = peopleDetails['id'] === 'private';
 			if (peopleDetails['isPrivateProfile'] || linkedinApiInternalError) {
 				if (!page) {
 					browser = await pup.runBrowser({ headless: config.headless, logger });
@@ -129,6 +129,8 @@ async function scrapPeopleProfile(page, url = null) {
 	if (await page.$('span.pv-top-card-v2-section__company-name'))
 		await pup.scrollPage(page, '#experience-section', 0.5);
 	const peopleDetails = await page.evaluate(() => {
+		let $; // to remove
+
 		const name = $('h1.pv-top-card-section__name')
 			.text()
 			.trim()
@@ -198,6 +200,8 @@ async function scrapCompanyPage(page, url = null) {
 	}
 
 	const companyDetails = await page.evaluate(() => {
+		let $; // to remove
+
 		const companyDetails = {};
 		const keys = $('dl > dt').get();
 		const values = $('dl > dd').get();
@@ -205,13 +209,13 @@ async function scrapCompanyPage(page, url = null) {
 		for (let i = 0; i < keys.length; ++i) {
 			key = keys[i].textContent.trim();
 			value = values[i].textContent.trim();
-			if (key == 'Website') companyDetails['website'] = value;
-			else if (key == 'Industry') companyDetails['industry'] = value;
-			else if (key == 'Company size') companyDetails['companySize'] = value;
-			else if (key == 'Headquarters') companyDetails['headquarters'] = value;
-			else if (key == 'Type') companyDetails['companyType'] = value;
-			else if (key == 'Founded') companyDetails['foundedYear'] = parseInt(value);
-			else if (key == 'Specialties') companyDetails['specialties'] = value;
+			if (key === 'Website') companyDetails['website'] = value;
+			else if (key === 'Industry') companyDetails['industry'] = value;
+			else if (key === 'Company size') companyDetails['companySize'] = value;
+			else if (key === 'Headquarters') companyDetails['headquarters'] = value;
+			else if (key === 'Type') companyDetails['companyType'] = value;
+			else if (key === 'Founded') companyDetails['foundedYear'] = parseInt(value);
+			else if (key === 'Specialties') companyDetails['specialties'] = value;
 		}
 		companyDetails['name'] = $('h1.org-top-card-summary__title').text().trim();
 		companyDetails['description'] = $('div.org-grid__core-rail--no-margin-left > section > p').text().trim() || null;
@@ -225,19 +229,9 @@ async function scrapCompanyPage(page, url = null) {
 
 function isCompanyOrSchoolPage(linkedinUrl) {
 	return (
-		linkedinUrl.indexOf('https://www.linkedin.com/company/') != -1 ||
-		linkedinUrl.indexOf('https://www.linkedin.com/school/') != -1
+		linkedinUrl.indexOf('https://www.linkedin.com/company/') !== -1 ||
+		linkedinUrl.indexOf('https://www.linkedin.com/school/') !== -1
 	);
-}
-
-// method not working...
-async function getCompanyData(companyId) {
-	return new Promise((resolve, reject) => {
-		linkedin.companies.company(companyId, (err, company) => {
-			if (err) reject(err);
-			else resolve(company);
-		});
-	});
 }
 
 async function logIn(page, login, password, options = {}) {
@@ -263,6 +257,6 @@ async function logIn(page, login, password, options = {}) {
 		logger.info('Logged in.');
 	}
 
-	if (options.redirectionUrl && page.url() != options.redirectionUrl)
+	if (options.redirectionUrl && page.url() !== options.redirectionUrl)
 		await pup.goTo(page, options.redirectionUrl, { ignoreDestination: true });
 }

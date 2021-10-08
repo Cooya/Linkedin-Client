@@ -99,7 +99,7 @@ const People = mongoose.model('People', new mongoose.Schema({
 		type: String,
 		validate: {
 			validator: (v) => {
-				return v != null;
+				return v !== null;
 			}
 		},
 		required: false

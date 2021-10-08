@@ -8,7 +8,7 @@ const LinkedinClient = require('./LinkedinClient');
 		console.log('Usage : node src/cli.js LINKEDIN_URL');
 		return;
 	}
-	
+
 	try {
 		const linkedinClient = new LinkedinClient(config.cookie);
 		const result = await linkedinClient.fetch(process.argv[2]);
