@@ -4,8 +4,6 @@
 
 This package allows to fetch data about individuals or companies on [Linkedin](https://www.linkedin.com).
 
-![app screenshot](https://cooya.fr/images/screenshots/linkedin-company.png)
-
 ## Installation
 
 ```bash
